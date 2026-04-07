@@ -3,6 +3,7 @@ import Layout from './components/layout/Layout'
 import Dashboard from './components/layout/Dashboard'
 import AccountPage from './components/accounts/AccountPage'
 import TransactionPage from './components/transactions/TransactionPage'
+import BudgetPage from './components/budget/BudgetPage'
 
 export default function App() {
   return (
@@ -11,7 +12,7 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="accounts" element={<AccountPage />} />
         <Route path="transactions" element={<TransactionPage />} />
-        <Route path="budget" element={<div className="p-6"><h1 className="text-xl font-semibold">Budget</h1><p className="text-surface-400 mt-2">Coming soon</p></div>} />
+        <Route path="budget" element={<BudgetPage />} />
         <Route path="forecast" element={<div className="p-6"><h1 className="text-xl font-semibold">Forecast</h1><p className="text-surface-400 mt-2">Coming soon</p></div>} />
         <Route path="scenarios" element={<div className="p-6"><h1 className="text-xl font-semibold">Scenarios</h1><p className="text-surface-400 mt-2">Coming soon</p></div>} />
         <Route path="goals" element={<div className="p-6"><h1 className="text-xl font-semibold">Goals</h1><p className="text-surface-400 mt-2">Coming soon</p></div>} />
