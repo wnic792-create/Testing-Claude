@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "accounts": "Accounts",
+    "transactions": "Transactions",
+    "budget": "Budget",
+    "forecast": "Forecast",
+    "scenarios": "Scenarios",
+    "goals": "Goals",
+    "assumptions": "Assumptions",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "netWorth": "Net Worth",
+    "monthlyIncome": "Monthly Income",
+    "monthlyExpenses": "Monthly Expenses",
+    "savingsRate": "Savings Rate",
+    "netWorthChart": "Net worth chart — add accounts to begin",
+    "cashFlowChart": "Cash flow chart — import transactions to begin"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "close": "Close",
+    "loading": "Loading...",
+    "noData": "No data yet",
+    "export": "Export",
+    "import": "Import"
+  }
+}

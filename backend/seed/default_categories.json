@@ -1,0 +1,73 @@
+[
+  {"name": "Income", "name_fr": "Revenus", "type": "income", "is_system": true, "children": [
+    {"name": "Salary", "name_fr": "Salaire"},
+    {"name": "Freelance", "name_fr": "Travail autonome"},
+    {"name": "Investment Income", "name_fr": "Revenus de placement"},
+    {"name": "Government Benefits", "name_fr": "Prestations gouvernementales"},
+    {"name": "Other Income", "name_fr": "Autres revenus"}
+  ]},
+  {"name": "Housing", "name_fr": "Habitation", "type": "expense", "children": [
+    {"name": "Rent", "name_fr": "Loyer"},
+    {"name": "Mortgage Payment", "name_fr": "Paiement hypothécaire"},
+    {"name": "Property Tax", "name_fr": "Taxes foncières"},
+    {"name": "Home Insurance", "name_fr": "Assurance habitation"},
+    {"name": "Maintenance", "name_fr": "Entretien"},
+    {"name": "Utilities", "name_fr": "Services publics"}
+  ]},
+  {"name": "Transportation", "name_fr": "Transport", "type": "expense", "children": [
+    {"name": "Gas", "name_fr": "Essence"},
+    {"name": "Public Transit", "name_fr": "Transport en commun"},
+    {"name": "Car Insurance", "name_fr": "Assurance auto"},
+    {"name": "Car Payment", "name_fr": "Paiement auto"},
+    {"name": "Parking", "name_fr": "Stationnement"},
+    {"name": "Maintenance", "name_fr": "Entretien auto"}
+  ]},
+  {"name": "Food", "name_fr": "Alimentation", "type": "expense", "children": [
+    {"name": "Groceries", "name_fr": "Épicerie"},
+    {"name": "Restaurants", "name_fr": "Restaurants"},
+    {"name": "Coffee Shops", "name_fr": "Cafés"},
+    {"name": "Alcohol", "name_fr": "Alcool"},
+    {"name": "Food Delivery", "name_fr": "Livraison"}
+  ]},
+  {"name": "Health", "name_fr": "Santé", "type": "expense", "children": [
+    {"name": "Pharmacy", "name_fr": "Pharmacie"},
+    {"name": "Dental", "name_fr": "Dentiste"},
+    {"name": "Vision", "name_fr": "Optométriste"},
+    {"name": "Insurance", "name_fr": "Assurance santé"},
+    {"name": "Gym/Fitness", "name_fr": "Gym/Mise en forme"}
+  ]},
+  {"name": "Entertainment", "name_fr": "Divertissement", "type": "expense", "children": [
+    {"name": "Subscriptions", "name_fr": "Abonnements"},
+    {"name": "Events/Shows", "name_fr": "Événements/Spectacles"},
+    {"name": "Hobbies", "name_fr": "Loisirs"},
+    {"name": "Games", "name_fr": "Jeux"},
+    {"name": "Books/Media", "name_fr": "Livres/Médias"}
+  ]},
+  {"name": "Shopping", "name_fr": "Magasinage", "type": "expense", "children": [
+    {"name": "Clothing", "name_fr": "Vêtements"},
+    {"name": "Electronics", "name_fr": "Électronique"},
+    {"name": "Home/Garden", "name_fr": "Maison/Jardin"},
+    {"name": "Gifts", "name_fr": "Cadeaux"}
+  ]},
+  {"name": "Education", "name_fr": "Éducation", "type": "expense", "children": [
+    {"name": "Tuition", "name_fr": "Frais de scolarité"},
+    {"name": "Books/Supplies", "name_fr": "Livres/Fournitures"},
+    {"name": "Courses", "name_fr": "Cours"}
+  ]},
+  {"name": "Personal", "name_fr": "Personnel", "type": "expense", "children": [
+    {"name": "Phone", "name_fr": "Téléphone"},
+    {"name": "Internet", "name_fr": "Internet"},
+    {"name": "Haircare", "name_fr": "Coiffure"},
+    {"name": "Pet", "name_fr": "Animal de compagnie"}
+  ]},
+  {"name": "Financial", "name_fr": "Finances", "type": "expense", "children": [
+    {"name": "Bank Fees", "name_fr": "Frais bancaires"},
+    {"name": "Interest Charges", "name_fr": "Frais d'intérêt"},
+    {"name": "Insurance (Life)", "name_fr": "Assurance vie"}
+  ]},
+  {"name": "Transfer", "name_fr": "Transfert", "type": "transfer", "is_system": true, "children": [
+    {"name": "Internal Transfer", "name_fr": "Transfert interne"},
+    {"name": "Credit Card Payment", "name_fr": "Paiement carte de crédit"}
+  ]},
+  {"name": "Uncategorized", "name_fr": "Non catégorisé", "type": "expense", "is_system": true}
+]

@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "accounts": "Comptes",
+    "transactions": "Transactions",
+    "budget": "Budget",
+    "forecast": "Prévisions",
+    "scenarios": "Scénarios",
+    "goals": "Objectifs",
+    "assumptions": "Hypothèses",
+    "settings": "Paramètres"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "netWorth": "Valeur nette",
+    "monthlyIncome": "Revenus mensuels",
+    "monthlyExpenses": "Dépenses mensuelles",
+    "savingsRate": "Taux d'épargne",
+    "netWorthChart": "Graphique valeur nette — ajoutez des comptes pour commencer",
+    "cashFlowChart": "Graphique flux de trésorerie — importez des transactions pour commencer"
+  },
+  "common": {
+    "save": "Sauvegarder",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "close": "Fermer",
+    "loading": "Chargement...",
+    "noData": "Aucune donnée",
+    "export": "Exporter",
+    "import": "Importer"
+  }
+}

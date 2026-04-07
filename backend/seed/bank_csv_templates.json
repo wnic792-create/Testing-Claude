@@ -1,0 +1,109 @@
+{
+  "_schema_version": "1.0",
+  "_description": "Bank CSV import mappings. Each bank profile defines column mappings, date format, amount handling, and encoding.",
+  "rbc_chequing": {
+    "name": "RBC - Chequing/Savings",
+    "institution": "RBC",
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "has_header": true,
+    "skip_rows": 0,
+    "columns": {
+      "date": "Date",
+      "description": "Description 1",
+      "description_2": "Description 2",
+      "amount_debit": "CAD$",
+      "amount_credit": null
+    },
+    "date_format": "%m/%d/%Y",
+    "amount_handling": {
+      "type": "single_column_signed",
+      "notes": "RBC chequing uses a single CAD$ column. Negative = debit, positive = credit."
+    }
+  },
+  "rbc_credit_card": {
+    "name": "RBC - Credit Card",
+    "institution": "RBC",
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "has_header": true,
+    "skip_rows": 0,
+    "columns": {
+      "date": "Transaction Date",
+      "description": "Description 1",
+      "description_2": "Description 2",
+      "amount_debit": "CAD$",
+      "amount_credit": null
+    },
+    "date_format": "%m/%d/%Y",
+    "amount_handling": {
+      "type": "single_column_signed",
+      "notes": "Positive = charge, negative = payment/credit. Invert sign on import."
+    },
+    "invert_sign": true
+  },
+  "wealthsimple_cash": {
+    "name": "Wealthsimple - Cash",
+    "institution": "Wealthsimple",
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "has_header": true,
+    "skip_rows": 0,
+    "columns": {
+      "date": "Date",
+      "description": "Transaction type",
+      "description_2": "Description",
+      "amount_debit": null,
+      "amount_credit": null,
+      "amount": "Amount"
+    },
+    "date_format": "%Y-%m-%d",
+    "amount_handling": {
+      "type": "single_column_signed",
+      "notes": "Single Amount column; negative = outflow, positive = inflow."
+    }
+  },
+  "wealthsimple_trade": {
+    "name": "Wealthsimple - Trade (TFSA/RRSP/Non-reg)",
+    "institution": "Wealthsimple",
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "has_header": true,
+    "skip_rows": 0,
+    "columns": {
+      "date": "Date",
+      "description": "Transaction Type",
+      "description_2": "Description",
+      "amount": "Amount",
+      "symbol": "Symbol",
+      "quantity": "Quantity",
+      "price": "Price"
+    },
+    "date_format": "%Y-%m-%d",
+    "amount_handling": {
+      "type": "single_column_signed",
+      "notes": "Amount column for cash flows. Buy = negative, sell/dividend = positive."
+    }
+  },
+  "_custom_template": {
+    "name": "Custom CSV",
+    "institution": "",
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "has_header": true,
+    "skip_rows": 0,
+    "columns": {
+      "date": "",
+      "description": "",
+      "description_2": null,
+      "amount": "",
+      "amount_debit": null,
+      "amount_credit": null
+    },
+    "date_format": "%Y-%m-%d",
+    "amount_handling": {
+      "type": "single_column_signed",
+      "notes": ""
+    }
+  }
+}

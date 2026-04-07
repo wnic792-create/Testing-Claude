@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Income -20%",
+    "description": "All income streams reduced by 20%",
+    "modifiers": [{"target": "income_streams", "field": "amount", "operator": "multiply", "value": 0.8}]
+  },
+  {
+    "name": "Income -50%",
+    "description": "All income streams reduced by 50%",
+    "modifiers": [{"target": "income_streams", "field": "amount", "operator": "multiply", "value": 0.5}]
+  },
+  {
+    "name": "Interest Rates +2%",
+    "description": "All debt interest rates increased by 2 percentage points",
+    "modifiers": [{"target": "debt_accounts", "field": "interest_rate", "operator": "add", "value": 2.0}]
+  },
+  {
+    "name": "Market Crash -30%",
+    "description": "Investment account balances reduced by 30% in month 0 (one-time shock)",
+    "modifiers": [{"target": "accounts", "field": "current_balance", "operator": "multiply", "value": 0.7, "filter": {"type": ["tfsa", "rrsp", "fhsa", "non_registered"]}}]
+  },
+  {
+    "name": "Inflation +3%",
+    "description": "Inflation rate increased by 3 percentage points above baseline",
+    "modifiers": [{"target": "forecast_assumptions", "field": "inflation_rate", "operator": "add", "value": 3.0}]
+  },
+  {
+    "name": "Job Loss - 6 Months",
+    "description": "Primary income set to $0 for months 0-5, then restored",
+    "modifiers": [{"target": "income_streams", "field": "amount", "operator": "set", "value": 0, "for_months": [0, 1, 2, 3, 4, 5], "filter": {"income_type": ["employment"]}}]
+  }
+]

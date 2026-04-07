@@ -1,0 +1,60 @@
+{
+  "year": 2025,
+  "federal": {
+    "brackets": [
+      {"min": 0, "max": 57375, "rate": 0.15},
+      {"min": 57375, "max": 114750, "rate": 0.205},
+      {"min": 114750, "max": 158468, "rate": 0.26},
+      {"min": 158468, "max": 220000, "rate": 0.29},
+      {"min": 220000, "max": null, "rate": 0.33}
+    ],
+    "basic_personal_amount": 16129,
+    "employment_amount": 1368
+  },
+  "quebec": {
+    "brackets": [
+      {"min": 0, "max": 53255, "rate": 0.14},
+      {"min": 53255, "max": 106495, "rate": 0.19},
+      {"min": 106495, "max": 129590, "rate": 0.24},
+      {"min": 129590, "max": null, "rate": 0.2575}
+    ],
+    "basic_personal_amount": 18056,
+    "abatement_rate": 0.165
+  },
+  "qpp": {
+    "base_contribution_rate": 0.064,
+    "enhanced_rate_1": 0.01,
+    "enhanced_rate_2": 0.04,
+    "max_pensionable_earnings": 71300,
+    "additional_max_pensionable_earnings": 81200,
+    "basic_exemption": 3500
+  },
+  "ei": {
+    "premium_rate_qc": 0.01312,
+    "max_insurable_earnings": 65700,
+    "qpip_employee_rate": 0.00494,
+    "qpip_max_insurable_earnings": 98000
+  },
+  "contribution_limits": {
+    "rrsp_rate": 0.18,
+    "rrsp_max": 32490,
+    "tfsa_annual": 7000,
+    "fhsa_annual": 8000,
+    "fhsa_lifetime": 40000
+  },
+  "dividend_tax_credit": {
+    "eligible": {
+      "federal_gross_up": 0.38,
+      "federal_credit_rate": 0.150198,
+      "quebec_gross_up": 0.38,
+      "quebec_credit_rate": 0.117
+    },
+    "non_eligible": {
+      "federal_gross_up": 0.15,
+      "federal_credit_rate": 0.090301,
+      "quebec_gross_up": 0.15,
+      "quebec_credit_rate": 0.0442
+    }
+  },
+  "capital_gains_inclusion_rate": 0.5
+}
