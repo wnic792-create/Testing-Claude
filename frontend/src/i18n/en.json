@@ -28,6 +28,7 @@
     "close": "Close",
     "loading": "Loading...",
     "noData": "No data yet",
+    "search": "Search...",
     "export": "Export",
     "import": "Import"
   }

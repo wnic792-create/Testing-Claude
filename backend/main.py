@@ -14,11 +14,18 @@ import backend.models.goal
 import backend.models.snapshot
 import backend.models.settings
 
-from backend.routers import accounts, transactions, import_export, budgets, forecast, scenarios, goals, backup
+from backend.routers import accounts, transactions, categories, import_export, budgets, forecast, scenarios, goals, backup
+from backend.database import SessionLocal
+from backend.services.category_seeder import seed_categories
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        seed_categories(db)
+    finally:
+        db.close()
     yield
 
 app = FastAPI(title="Local Finance", version="0.1.0", lifespan=lifespan)
@@ -32,6 +39,7 @@ app.add_middleware(
 )
 
 app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"])
+app.include_router(categories.router, prefix="/api/categories", tags=["categories"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["transactions"])
 app.include_router(import_export.router, prefix="/api/import", tags=["import"])
 app.include_router(budgets.router, prefix="/api/budgets", tags=["budgets"])

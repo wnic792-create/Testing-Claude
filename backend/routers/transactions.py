@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from backend.database import get_db
 from backend.models.transaction import Transaction
+from backend.services.categorization import learn_from_correction
 
 router = APIRouter()
 
@@ -90,6 +91,9 @@ def update_transaction(tx_id: int, updates: TransactionUpdate, db: Session = Dep
         raise HTTPException(status_code=404, detail="Transaction not found")
     for key, value in updates.model_dump(exclude_unset=True).items():
         setattr(tx, key, value)
+    # If category changed, learn from the correction
+    if updates.category_id is not None:
+        learn_from_correction(db, tx_id, updates.category_id)
     db.commit()
     db.refresh(tx)
     return tx
