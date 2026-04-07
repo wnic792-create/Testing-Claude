@@ -81,15 +81,21 @@ cd frontend && npm run dev
 - **Default categories**: `backend/seed/default_categories.json` — bilingual (EN/FR)
 - **Stress test presets**: `backend/seed/stress_test_presets.json`
 
-## Features (Build Order)
+## Features
 
 - [x] Data model + project scaffolding
-- [ ] Transaction import + auto-categorization
-- [ ] Budgeting (envelope-style with rollover)
-- [ ] 5-year forecast engine
-- [ ] Scenario management + stress tests
-- [ ] Reporting, charts, export
-- [ ] Polish (dark/light mode, bilingual UI, dense layout)
+- [x] Transaction import (CSV/OFX/QFX) + auto-categorization (regex rules + learning)
+- [x] Budgeting (envelope-style with rollover, variance reporting)
+- [x] 5-year forecast engine (60-month, QC+federal tax, amortization, investment returns)
+- [x] Scenario management (create, clone, compare side-by-side) + stress test presets
+- [x] Goal tracking with projected hit dates from forecast
+- [x] Net worth snapshots + history
+- [x] Recurring transaction detection
+- [x] Backup/restore (full database export/import)
+- [x] Bilingual UI (EN/FR Québécois) with toggle
+- [x] Dark mode + dense information-rich design
+- [x] Export (CSV + JSON with filters)
+- [x] Settings page (theme, language, backup/restore)
 
 ## Security
 

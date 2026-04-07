@@ -5,6 +5,7 @@ from typing import Optional, List
 from backend.database import get_db
 from backend.models.transaction import Transaction
 from backend.services.categorization import learn_from_correction
+from backend.services.recurring_detector import detect_recurring
 
 router = APIRouter()
 
@@ -74,6 +75,15 @@ def create_transaction(tx: TransactionCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_tx)
     return db_tx
+
+
+@router.get("/recurring/detect")
+def detect_recurring_transactions(
+    account_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Detect potential recurring transactions (subscriptions)."""
+    return detect_recurring(db, account_id)
 
 
 @router.get("/{tx_id}")

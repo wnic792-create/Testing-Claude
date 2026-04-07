@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from backend.database import get_db
 from backend.models.account import Account
+from backend.services.snapshot_service import take_snapshot, get_snapshot_history
 
 router = APIRouter()
 
@@ -45,6 +46,18 @@ class AccountUpdate(BaseModel):
 @router.get("/")
 def list_accounts(db: Session = Depends(get_db)):
     return db.query(Account).all()
+
+
+@router.get("/snapshots")
+def list_snapshots(db: Session = Depends(get_db)):
+    """Get net worth snapshot history."""
+    return get_snapshot_history(db)
+
+
+@router.post("/snapshots", status_code=201)
+def create_snapshot(db: Session = Depends(get_db)):
+    """Take a new net worth snapshot."""
+    return take_snapshot(db)
 
 
 @router.post("/", status_code=201)
