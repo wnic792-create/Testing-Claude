@@ -6,6 +6,8 @@ import TransactionPage from './components/transactions/TransactionPage'
 import BudgetPage from './components/budget/BudgetPage'
 import ForecastPage from './components/forecast/ForecastPage'
 import AssumptionsPage from './components/forecast/AssumptionsPage'
+import ScenarioPage from './components/scenarios/ScenarioPage'
+import GoalPage from './components/goals/GoalPage'
 
 export default function App() {
   return (
@@ -16,8 +18,8 @@ export default function App() {
         <Route path="transactions" element={<TransactionPage />} />
         <Route path="budget" element={<BudgetPage />} />
         <Route path="forecast" element={<ForecastPage />} />
-        <Route path="scenarios" element={<div className="p-6"><h1 className="text-xl font-semibold">Scenarios</h1><p className="text-surface-400 mt-2">Coming soon</p></div>} />
-        <Route path="goals" element={<div className="p-6"><h1 className="text-xl font-semibold">Goals</h1><p className="text-surface-400 mt-2">Coming soon</p></div>} />
+        <Route path="scenarios" element={<ScenarioPage />} />
+        <Route path="goals" element={<GoalPage />} />
         <Route path="assumptions" element={<AssumptionsPage />} />
         <Route path="settings" element={<div className="p-6"><h1 className="text-xl font-semibold">Settings</h1><p className="text-surface-400 mt-2">Coming soon</p></div>} />
       </Route>
