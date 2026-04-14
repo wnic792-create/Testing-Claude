@@ -19,6 +19,11 @@
     "netWorthChart": "Net worth chart — add accounts to begin",
     "cashFlowChart": "Cash flow chart — import transactions to begin"
   },
+  "transactions": {
+    "recategorize": "Recategorize",
+    "recategorizeResult": "Categorized {{categorized}} of {{checked}} uncategorized transactions.",
+    "confirmDelete": "Delete this transaction?"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from backend.database import get_db
 from backend.models.transaction import Transaction
-from backend.services.categorization import learn_from_correction, auto_categorize
+from backend.services.categorization import learn_from_correction, auto_categorize, categorize_batch
 from backend.services.recurring_detector import detect_recurring
 
 router = APIRouter()
@@ -88,6 +88,15 @@ def detect_recurring_transactions(
 ):
     """Detect potential recurring transactions (subscriptions)."""
     return detect_recurring(db, account_id)
+
+
+@router.post("/categorize-uncategorized")
+def categorize_uncategorized(db: Session = Depends(get_db)):
+    """Run auto-categorization across all transactions that currently have no category."""
+    txs = db.query(Transaction).filter(Transaction.category_id.is_(None)).all()
+    count = categorize_batch(db, txs)
+    db.commit()
+    return {"categorized": count, "checked": len(txs)}
 
 
 @router.get("/{tx_id}")

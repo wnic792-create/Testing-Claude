@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Transaction, Account, Category } from '../../api/types'
 
@@ -56,6 +56,12 @@ export default function TransactionList() {
 
   const handleCategoryChange = async (txId: number, categoryId: number) => {
     await api.patch(`/transactions/${txId}`, { category_id: categoryId || null })
+    fetchTransactions()
+  }
+
+  const handleDelete = async (txId: number) => {
+    if (!confirm(t('transactions.confirmDelete') || 'Delete this transaction?')) return
+    await api.delete(`/transactions/${txId}`)
     fetchTransactions()
   }
 
@@ -115,13 +121,14 @@ export default function TransactionList() {
               <th className="px-4 py-2 w-36">Account</th>
               <th className="px-4 py-2 w-44">Category</th>
               <th className="px-4 py-2 w-28 text-right">Amount</th>
+              <th className="px-4 py-2 w-10"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-800">
             {loading ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-surface-500">{t('common.loading')}</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-surface-500">{t('common.loading')}</td></tr>
             ) : transactions.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-surface-500">{t('common.noData')}</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-surface-500">{t('common.noData')}</td></tr>
             ) : (
               transactions.map(tx => (
                 <tr key={tx.id} className="hover:bg-surface-800/50 transition-colors">
@@ -144,6 +151,15 @@ export default function TransactionList() {
                   </td>
                   <td className={`px-4 py-1.5 text-right font-mono text-xs ${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {formatAmount(tx.amount, tx.currency)}
+                  </td>
+                  <td className="px-2 py-1.5 text-center">
+                    <button
+                      onClick={() => handleDelete(tx.id)}
+                      className="text-surface-500 hover:text-red-400 p-1"
+                      title={t('common.delete') || 'Delete'}
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </td>
                 </tr>
               ))

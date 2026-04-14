@@ -19,6 +19,11 @@
     "netWorthChart": "Graphique valeur nette — ajoutez des comptes pour commencer",
     "cashFlowChart": "Graphique flux de trésorerie — importez des transactions pour commencer"
   },
+  "transactions": {
+    "recategorize": "Recatégoriser",
+    "recategorizeResult": "{{categorized}} de {{checked}} transactions non catégorisées classées.",
+    "confirmDelete": "Supprimer cette transaction?"
+  },
   "common": {
     "save": "Sauvegarder",
     "cancel": "Annuler",
