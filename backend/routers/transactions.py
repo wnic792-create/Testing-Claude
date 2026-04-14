@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from backend.database import get_db
 from backend.models.transaction import Transaction
-from backend.services.categorization import learn_from_correction
+from backend.services.categorization import learn_from_correction, auto_categorize
 from backend.services.recurring_detector import detect_recurring
 
 router = APIRouter()
@@ -70,7 +70,11 @@ def list_transactions(
 
 @router.post("/", status_code=201)
 def create_transaction(tx: TransactionCreate, db: Session = Depends(get_db)):
-    db_tx = Transaction(**tx.model_dump())
+    data = tx.model_dump()
+    # Auto-categorize if no category was provided
+    if data.get("category_id") is None:
+        data["category_id"] = auto_categorize(db, data["description"])
+    db_tx = Transaction(**data)
     db.add(db_tx)
     db.commit()
     db.refresh(db_tx)

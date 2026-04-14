@@ -22,6 +22,12 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-surface-500;
   }
+
+  /* Make <option> popups readable in dark theme (browsers ignore bg-transparent on the dropdown list) */
+  select option {
+    background-color: #1e293b; /* surface-800 */
+    color: #f1f5f9; /* surface-100 */
+  }
 }
 
 @layer components {
