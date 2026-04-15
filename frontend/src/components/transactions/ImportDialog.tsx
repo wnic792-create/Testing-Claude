@@ -86,6 +86,11 @@ export default function ImportDialog({ open, onClose, onImported }: Props) {
                 <p><span className="font-mono">{result.imported}</span> transactions imported</p>
                 <p><span className="font-mono">{result.duplicates_skipped}</span> duplicates skipped</p>
                 <p><span className="font-mono">{result.auto_categorized}</span> auto-categorized</p>
+                {(result.auto_transferred ?? 0) > 0 && (
+                  <p className="text-blue-400">
+                    <span className="font-mono">{result.auto_transferred}</span> auto-paired as transfers
+                  </p>
+                )}
               </div>
               <button onClick={onClose} className="btn-primary w-full">{t('common.close')}</button>
             </div>

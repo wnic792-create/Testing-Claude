@@ -17,6 +17,7 @@ from sqlalchemy.engine import Engine
 # Keep this list append-only; removing entries doesn't drop columns.
 REQUIRED_COLUMNS: list[tuple[str, str, str]] = [
     ("categories", "is_transfer_category", "BOOLEAN DEFAULT 0"),
+    ("categories", "default_transfer_account_id", "INTEGER"),
 ]
 
 

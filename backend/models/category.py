@@ -14,6 +14,9 @@ class Category(Base):
     type = Column(String, default="expense")  # income | expense | transfer
     is_system = Column(Boolean, default=False)
     is_transfer_category = Column(Boolean, default=False)
+    # When set, imports that match this category auto-create a paired transfer
+    # into this account instead of a single-leg transaction.
+    default_transfer_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
 
 
 class CategorizationRule(Base):

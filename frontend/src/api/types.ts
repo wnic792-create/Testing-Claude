@@ -46,6 +46,7 @@ export interface Category {
   type: string
   is_system: boolean
   is_transfer_category: boolean
+  default_transfer_account_id: number | null
   children?: Category[]
 }
 
@@ -59,6 +60,7 @@ export interface ImportResult {
   imported: number
   duplicates_skipped: number
   auto_categorized: number
+  auto_transferred?: number
   filename: string
 }
 

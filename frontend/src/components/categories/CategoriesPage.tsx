@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2, Tag, Zap } from 'lucide-react'
+import { Plus, Trash2, Tag, Zap, ArrowRightLeft } from 'lucide-react'
 import { api } from '../../api/client'
-import type { Category } from '../../api/types'
+import type { Account, Category } from '../../api/types'
 
 interface Rule {
   id: number
@@ -19,6 +19,7 @@ export default function CategoriesPage() {
 
   // --- Categories state ---
   const [categories, setCategories] = useState<Category[]>([])
+  const [accounts, setAccounts] = useState<Account[]>([])
   const [catForm, setCatForm] = useState({ name: '', name_fr: '', type: 'expense', parent_id: '' })
 
   // --- Rules state ---
@@ -28,6 +29,7 @@ export default function CategoriesPage() {
   const fetchAll = () => {
     api.get<Category[]>('/categories/flat').then(setCategories)
     api.get<Rule[]>('/categories/rules').then(setRules)
+    api.get<Account[]>('/accounts').then(setAccounts)
   }
 
   useEffect(() => { fetchAll() }, [])
@@ -57,6 +59,18 @@ export default function CategoriesPage() {
     if (!confirm('Delete this category? Transactions in this category will become uncategorized.')) return
     await api.delete(`/categories/${id}`)
     fetchAll()
+  }
+
+  const handleToggleTransferCategory = async (cat: Category) => {
+    const next = !cat.is_transfer_category
+    // Optimistic update
+    setCategories(cs => cs.map(c => c.id === cat.id ? { ...c, is_transfer_category: next } : c))
+    await api.patch(`/categories/${cat.id}`, { is_transfer_category: next })
+  }
+
+  const handleSetTransferDestination = async (cat: Category, accountId: number | null) => {
+    setCategories(cs => cs.map(c => c.id === cat.id ? { ...c, default_transfer_account_id: accountId } : c))
+    await api.patch(`/categories/${cat.id}`, { default_transfer_account_id: accountId })
   }
 
   // --- Rule actions ---
@@ -166,6 +180,11 @@ export default function CategoriesPage() {
             </div>
           </div>
 
+          <p className="text-xs text-surface-500 mb-3">
+            Tip: mark a sub-category as a <strong>Transfer category</strong> and pick a default destination account to auto-pair
+            matching transactions as linked transfers during import (e.g. Investment → TFSA).
+          </p>
+
           {/* Category list grouped by parent */}
           <div className="space-y-4">
             {parentCategories.map(parent => {
@@ -186,17 +205,61 @@ export default function CategoriesPage() {
                       </button>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-1.5">
                     {children.map(child => (
                       <div
                         key={child.id}
-                        className="flex items-center gap-1.5 bg-surface-800 rounded px-2 py-1 text-xs text-surface-300"
+                        className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs ${
+                          child.is_transfer_category
+                            ? 'bg-blue-950/40 border border-blue-900/60'
+                            : 'bg-surface-800'
+                        }`}
                       >
-                        <span>{catName(child)}</span>
+                        <span className="text-surface-200 min-w-[140px]">{catName(child)}</span>
+
+                        {/* Transfer toggle */}
+                        <button
+                          onClick={() => handleToggleTransferCategory(child)}
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] border transition-colors ${
+                            child.is_transfer_category
+                              ? 'border-blue-500 text-blue-300 bg-blue-900/40'
+                              : 'border-surface-600 text-surface-500 hover:text-surface-300'
+                          }`}
+                          title="Treat as a transfer between accounts (money-movement, not spending)"
+                        >
+                          <ArrowRightLeft size={10} />
+                          Transfer
+                        </button>
+
+                        {/* Default destination (only when flagged as transfer) */}
+                        {child.is_transfer_category && (
+                          <>
+                            <span className="text-surface-500">→</span>
+                            <select
+                              value={child.default_transfer_account_id ?? ''}
+                              onChange={e =>
+                                handleSetTransferDestination(
+                                  child,
+                                  e.target.value ? Number(e.target.value) : null,
+                                )
+                              }
+                              className="bg-surface-900 border border-surface-700 rounded px-1.5 py-0.5 text-xs text-surface-200 flex-1 max-w-[240px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              title="Imports with this category will auto-pair a transfer into this account"
+                            >
+                              <option value="">No default — imports stay single-leg</option>
+                              {accounts.map(a => (
+                                <option key={a.id} value={a.id}>{a.name}</option>
+                              ))}
+                            </select>
+                          </>
+                        )}
+
+                        <div className="flex-1" />
+
                         {!child.is_system && (
                           <button
                             onClick={() => handleDeleteCategory(child.id)}
-                            className="text-surface-500 hover:text-red-400 ml-1"
+                            className="text-surface-500 hover:text-red-400"
                           >
                             <Trash2 size={11} />
                           </button>

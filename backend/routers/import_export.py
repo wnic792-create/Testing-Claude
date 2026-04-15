@@ -9,6 +9,7 @@ from typing import Optional
 
 from backend.database import get_db
 from backend.models.account import Account
+from backend.models.category import Category
 from backend.models.transaction import Transaction
 from backend.services.csv_parser import parse_csv, list_profiles
 from backend.services.ofx_parser import parse_ofx
@@ -17,6 +18,80 @@ from backend.services.categorization import auto_categorize
 from backend.services import account_balance
 
 router = APIRouter()
+
+
+def _create_imported_row(
+    db: Session,
+    source_account: Account,
+    tx_data: dict,
+    filename: str | None,
+) -> tuple[list[Transaction], bool]:
+    """
+    Turn one parsed file row into database row(s).
+
+    Returns (created_transactions, was_paired_transfer). When the row
+    auto-categorizes into a transfer-category with a configured default
+    destination — and the amount is an outflow from the source account —
+    we materialize both legs of a linked transfer instead of a single row.
+    """
+    category_id = auto_categorize(db, tx_data["description"])
+    amount = tx_data["amount"]
+    currency = tx_data.get("currency", source_account.currency)
+
+    # Auto-pair transfer? Only when outflow + category has a default destination.
+    if category_id is not None and amount < 0:
+        cat = db.query(Category).filter(Category.id == category_id).first()
+        if (
+            cat
+            and cat.is_transfer_category
+            and cat.default_transfer_account_id
+            and cat.default_transfer_account_id != source_account.id
+        ):
+            dest_id = cat.default_transfer_account_id
+            out_tx = Transaction(
+                account_id=source_account.id,
+                date=tx_data["date"],
+                description=tx_data["description"],
+                amount=amount,  # already negative
+                currency=currency,
+                category_id=category_id,
+                is_transfer=True,
+                import_hash=tx_data["import_hash"],
+                source_file=filename,
+            )
+            db.add(out_tx)
+            db.flush()
+            in_tx = Transaction(
+                account_id=dest_id,
+                date=tx_data["date"],
+                description=tx_data["description"],
+                amount=-amount,  # flip sign for destination leg
+                currency=currency,
+                category_id=category_id,
+                is_transfer=True,
+                transfer_pair_id=out_tx.id,
+                # No import_hash on the synthetic leg — dedup only applies to
+                # rows that actually came from the file.
+                source_file=filename,
+            )
+            db.add(in_tx)
+            db.flush()
+            out_tx.transfer_pair_id = in_tx.id
+            return [out_tx, in_tx], True
+
+    # Regular single-leg transaction
+    db_tx = Transaction(
+        account_id=source_account.id,
+        date=tx_data["date"],
+        description=tx_data["description"],
+        amount=amount,
+        currency=currency,
+        category_id=category_id,
+        import_hash=tx_data["import_hash"],
+        source_file=filename,
+    )
+    db.add(db_tx)
+    return [db_tx], False
 
 
 @router.get("/profiles")
@@ -50,30 +125,23 @@ async def import_csv(
 
     new_txs, dup_txs = find_duplicates(db, account_id, parsed)
 
-    created = []
+    created: list[Transaction] = []
+    paired_count = 0
     for tx_data in new_txs:
-        category_id = auto_categorize(db, tx_data["description"])
-        db_tx = Transaction(
-            account_id=account_id,
-            date=tx_data["date"],
-            description=tx_data["description"],
-            amount=tx_data["amount"],
-            currency=tx_data.get("currency", account.currency),
-            category_id=category_id,
-            import_hash=tx_data["import_hash"],
-            source_file=file.filename,
-        )
-        db.add(db_tx)
-        created.append(db_tx)
+        rows, was_paired = _create_imported_row(db, account, tx_data, file.filename)
+        created.extend(rows)
+        if was_paired:
+            paired_count += 1
 
     db.flush()
     account_balance.on_bulk_create(db, created)
     db.commit()
 
     return {
-        "imported": len(created),
+        "imported": len(new_txs),
         "duplicates_skipped": len(dup_txs),
-        "auto_categorized": sum(1 for tx in created if tx.category_id is not None),
+        "auto_categorized": sum(1 for tx in created if tx.category_id is not None and not (tx.is_transfer and tx.amount > 0)),
+        "auto_transferred": paired_count,
         "filename": file.filename,
     }
 
@@ -102,30 +170,23 @@ async def import_ofx(
 
     new_txs, dup_txs = find_duplicates(db, account_id, parsed)
 
-    created = []
+    created: list[Transaction] = []
+    paired_count = 0
     for tx_data in new_txs:
-        category_id = auto_categorize(db, tx_data["description"])
-        db_tx = Transaction(
-            account_id=account_id,
-            date=tx_data["date"],
-            description=tx_data["description"],
-            amount=tx_data["amount"],
-            currency=tx_data.get("currency", account.currency),
-            category_id=category_id,
-            import_hash=tx_data["import_hash"],
-            source_file=file.filename,
-        )
-        db.add(db_tx)
-        created.append(db_tx)
+        rows, was_paired = _create_imported_row(db, account, tx_data, file.filename)
+        created.extend(rows)
+        if was_paired:
+            paired_count += 1
 
     db.flush()
     account_balance.on_bulk_create(db, created)
     db.commit()
 
     return {
-        "imported": len(created),
+        "imported": len(new_txs),
         "duplicates_skipped": len(dup_txs),
-        "auto_categorized": sum(1 for tx in created if tx.category_id is not None),
+        "auto_categorized": sum(1 for tx in created if tx.category_id is not None and not (tx.is_transfer and tx.amount > 0)),
+        "auto_transferred": paired_count,
         "filename": file.filename,
     }
 
