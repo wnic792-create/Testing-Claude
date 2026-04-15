@@ -76,6 +76,17 @@ export default function CategoriesPage() {
     fetchAll()
   }
 
+  const handleUpdateRulePriority = async (id: number, priority: number) => {
+    // Optimistic update so the input reflects the change immediately
+    setRules(rs => rs.map(r => (r.id === id ? { ...r, priority } : r)))
+    await api.patch(`/categories/rules/${id}`, { priority })
+  }
+
+  const handleUpdateRuleCategory = async (id: number, category_id: number) => {
+    setRules(rs => rs.map(r => (r.id === id ? { ...r, category_id } : r)))
+    await api.patch(`/categories/rules/${id}`, { category_id })
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-xl font-semibold mb-6">Categories & Rules</h1>
@@ -283,9 +294,29 @@ export default function CategoriesPage() {
                           {rule.pattern}
                         </td>
                         <td className="px-4 py-2 text-xs">
-                          {cat ? catName(cat) : `#${rule.category_id}`}
+                          <select
+                            value={rule.category_id}
+                            onChange={e => handleUpdateRuleCategory(rule.id, Number(e.target.value))}
+                            className="bg-surface-900 border border-surface-700 rounded px-1.5 py-0.5 text-xs text-surface-200 w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          >
+                            {parentCategories.map(parent => (
+                              <optgroup key={parent.id} label={catName(parent)}>
+                                {categories.filter(c => c.parent_id === parent.id).map(child => (
+                                  <option key={child.id} value={child.id}>{catName(child)}</option>
+                                ))}
+                              </optgroup>
+                            ))}
+                          </select>
                         </td>
-                        <td className="px-4 py-2 text-xs text-center text-surface-400">{rule.priority}</td>
+                        <td className="px-2 py-2 text-xs text-center">
+                          <input
+                            type="number"
+                            value={rule.priority}
+                            onChange={e => handleUpdateRulePriority(rule.id, Number(e.target.value))}
+                            className="w-14 bg-surface-900 border border-surface-700 rounded px-1 py-0.5 text-xs text-surface-200 text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            title="Higher priority rules are checked first"
+                          />
+                        </td>
                         <td className="px-4 py-2 text-xs text-center text-surface-400">{rule.match_count}</td>
                         <td className="px-4 py-2 text-xs text-center">
                           <span className={`px-1.5 py-0.5 rounded text-xs ${
