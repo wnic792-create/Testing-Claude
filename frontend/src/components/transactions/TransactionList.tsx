@@ -37,6 +37,10 @@ export default function TransactionList() {
     setLoading(false)
   }, [search, accountFilter, dateFrom, dateTo, page])
 
+  const fetchCategories = useCallback(() => {
+    return api.get<Category[]>('/categories/flat').then(setCategories)
+  }, [])
+
   useEffect(() => {
     fetchTransactions()
   }, [fetchTransactions])
@@ -55,10 +59,6 @@ export default function TransactionList() {
     if (!cat) return '—'
     return i18n.language === 'fr' && cat.name_fr ? cat.name_fr : cat.name
   }
-
-  const fetchCategories = useCallback(() => {
-    return api.get<Category[]>('/categories/flat').then(setCategories)
-  }, [])
 
   const handleCategoryChange = async (txId: number, categoryId: number | null) => {
     const result = await api.patch<{ _learn?: { also_categorized: number } }>(
