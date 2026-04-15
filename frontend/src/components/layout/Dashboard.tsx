@@ -137,8 +137,23 @@ export default function Dashboard() {
   const prevYm = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`
   const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
+  // Transfer-category IDs (Investment, Credit Card Payment, etc.)
+  const transferCatIds = useMemo(
+    () => new Set(categories.filter(c => c.is_transfer_category).map(c => c.id)),
+    [categories],
+  )
+
+  // For charts + recent list: exclude is_transfer and split rows (clean expense view)
   const eligible = useMemo(
     () => transactions.filter(tx => !tx.is_transfer && !tx.is_split),
+    [transactions],
+  )
+
+  // For KPI calculations: include transfer-category outflow legs so investment
+  // contributions count toward cash flow / savings rate, but skip inflow legs
+  // (positive is_transfer=true) to avoid double-counting the destination account.
+  const kpiEligible = useMemo(
+    () => transactions.filter(tx => !tx.is_split && !(tx.is_transfer && tx.amount > 0)),
     [transactions],
   )
 
@@ -149,44 +164,55 @@ export default function Dashboard() {
     if (autoPicked) return
     if (transactions.length === 0) return
     if (period !== 'this_month') return
-    const hasThis = eligible.some(tx => tx.date.startsWith(currentYm))
+    const hasThis = kpiEligible.some(tx => tx.date.startsWith(currentYm))
     if (hasThis) {
       setAutoPicked(true)
       return
     }
     // Find the latest month with any activity
-    const months = new Set(eligible.map(tx => tx.date.slice(0, 7)))
+    const months = new Set(kpiEligible.map(tx => tx.date.slice(0, 7)))
     if (months.size === 0) return
     const latest = [...months].sort().reverse()[0]
     const prevYmStr = prevYm
     if (latest === prevYmStr) setPeriod('last_month')
     else setPeriod('last_12_months')
     setAutoPicked(true)
-  }, [transactions, eligible, currentYm, prevYm, period, autoPicked])
+  }, [transactions, kpiEligible, currentYm, prevYm, period, autoPicked])
 
-  // Period totals
-  const { incomeThis, expenseThis } = useMemo(() => {
-    let income = 0, expense = 0
-    for (const tx of eligible) {
+  // Period totals — split into true expenses vs. transfer-category savings
+  // (Investment contributions, CC payments treated as savings, not spending)
+  const { incomeThis, expenseThis, transferSavedThis } = useMemo(() => {
+    let income = 0, expense = 0, transferSaved = 0
+    for (const tx of kpiEligible) {
       if (tx.date < periodStart || tx.date > periodEnd) continue
-      if (tx.amount >= 0) income += tx.amount
-      else expense += Math.abs(tx.amount)
+      if (tx.amount >= 0) {
+        income += tx.amount
+      } else {
+        const isTransCat = tx.category_id ? transferCatIds.has(tx.category_id) : false
+        if (isTransCat) transferSaved += Math.abs(tx.amount)
+        else expense += Math.abs(tx.amount)
+      }
     }
-    return { incomeThis: income, expenseThis: expense }
-  }, [eligible, periodStart, periodEnd])
+    return { incomeThis: income, expenseThis: expense, transferSavedThis: transferSaved }
+  }, [kpiEligible, periodStart, periodEnd, transferCatIds])
 
-  // Previous-month totals (used for the savings-rate comparison only)
+  // Previous-month totals for savings-rate comparison (same split logic)
   const { incomePrev, expensePrev } = useMemo(() => {
     let income = 0, expense = 0
-    for (const tx of eligible) {
+    for (const tx of kpiEligible) {
       if (!tx.date.startsWith(prevYm)) continue
       if (tx.amount >= 0) income += tx.amount
-      else expense += Math.abs(tx.amount)
+      else {
+        const isTransCat = tx.category_id ? transferCatIds.has(tx.category_id) : false
+        if (!isTransCat) expense += Math.abs(tx.amount)
+      }
     }
     return { incomePrev: income, expensePrev: expense }
-  }, [eligible, prevYm])
+  }, [kpiEligible, prevYm, transferCatIds])
 
-  const netThis = incomeThis - expenseThis
+  // "This Month Net" = liquid cash retained (income − expenses − amount moved to investments/CC)
+  const netThis = incomeThis - expenseThis - transferSavedThis
+  // Savings rate treats transfer destinations as savings too: savings = income − true expenses
   const savingsRate = incomeThis > 0 ? ((incomeThis - expenseThis) / incomeThis) * 100 : 0
 
   // 3-month expense average for runway
@@ -456,9 +482,13 @@ export default function Dashboard() {
           }`}>
             {incomeThis > 0 ? `${savingsRate.toFixed(1)}%` : '—'}
           </p>
-          <p className="text-xs text-surface-500 mt-1">
-            Last month: {incomePrev > 0 ? `${(((incomePrev - expensePrev) / incomePrev) * 100).toFixed(1)}%` : '—'}
-          </p>
+          {transferSavedThis > 0 ? (
+            <p className="text-xs text-blue-400/80 mt-1">incl. {fmt(transferSavedThis)} allocated to savings</p>
+          ) : (
+            <p className="text-xs text-surface-500 mt-1">
+              Last month: {incomePrev > 0 ? `${(((incomePrev - expensePrev) / incomePrev) * 100).toFixed(1)}%` : '—'}
+            </p>
+          )}
         </div>
       </div>
 

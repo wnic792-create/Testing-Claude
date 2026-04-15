@@ -45,6 +45,7 @@ export interface Category {
   icon: string | null
   type: string
   is_system: boolean
+  is_transfer_category: boolean
   children?: Category[]
 }
 
