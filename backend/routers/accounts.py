@@ -5,6 +5,7 @@ from typing import Optional
 from backend.database import get_db
 from backend.models.account import Account
 from backend.services.snapshot_service import take_snapshot, get_snapshot_history
+from backend.services.account_balance import rebase_from_transactions
 
 router = APIRouter()
 
@@ -96,3 +97,26 @@ def delete_account(account_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Account not found")
     db.delete(account)
     db.commit()
+
+
+class RecalculateRequest(BaseModel):
+    opening_balance: float = 0.0
+
+
+@router.post("/{account_id}/recalculate")
+def recalculate_balance(
+    account_id: int,
+    body: RecalculateRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Reset `current_balance` to `opening_balance + sum(transactions)`.
+    Useful to fix accounts whose balance drifted (e.g. transactions were added
+    before the balance-sync hooks existed).
+    """
+    account = db.query(Account).filter(Account.id == account_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    new_balance = rebase_from_transactions(db, account_id, body.opening_balance)
+    db.commit()
+    return {"account_id": account_id, "current_balance": new_balance}

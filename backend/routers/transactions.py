@@ -6,6 +6,7 @@ from backend.database import get_db
 from backend.models.transaction import Transaction
 from backend.services.categorization import learn_from_correction, auto_categorize, categorize_batch
 from backend.services.recurring_detector import detect_recurring
+from backend.services import account_balance
 
 router = APIRouter()
 
@@ -76,6 +77,8 @@ def create_transaction(tx: TransactionCreate, db: Session = Depends(get_db)):
         data["category_id"] = auto_categorize(db, data["description"])
     db_tx = Transaction(**data)
     db.add(db_tx)
+    db.flush()
+    account_balance.on_create(db, db_tx)
     db.commit()
     db.refresh(db_tx)
     return db_tx
@@ -130,8 +133,12 @@ def bulk_delete(
         query = query.filter(Transaction.date <= date_to)
     if search:
         query = query.filter(Transaction.description.ilike(f"%{search}%"))
-    count = query.count()
-    query.delete(synchronize_session=False)
+    # Materialize rows first so we can refund each affected account's balance.
+    rows = query.all()
+    account_balance.on_bulk_delete(db, rows)
+    count = len(rows)
+    for row in rows:
+        db.delete(row)
     db.commit()
     return {"deleted": count}
 
@@ -159,8 +166,14 @@ def update_transaction(tx_id: int, updates: TransactionUpdate, db: Session = Dep
         learn_result = learn_from_correction(db, tx_id, payload["category_id"])
         payload.pop("category_id")  # already applied inside learn_from_correction
 
+    # Snapshot the fields that can move account balances so we can diff later.
+    old_amount = tx.amount
+    old_account_id = tx.account_id
+
     for key, value in payload.items():
         setattr(tx, key, value)
+
+    account_balance.on_update(db, tx, old_amount, old_account_id)
 
     db.commit()
     db.refresh(tx)
@@ -177,6 +190,7 @@ def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
     tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
+    account_balance.on_delete(db, tx)
     db.delete(tx)
     db.commit()
 

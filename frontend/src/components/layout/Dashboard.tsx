@@ -1,12 +1,12 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts'
 import {
-  TrendingUp, TrendingDown, Wallet, Banknote, PiggyBank,
-  AlertCircle, Percent, Calendar, ArrowRight,
+  TrendingUp, TrendingDown, Wallet, Banknote,
+  AlertCircle, Percent, Calendar, ArrowRight, RefreshCw,
 } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Account, Transaction, Category } from '../../api/types'
@@ -33,7 +33,7 @@ export default function Dashboard() {
   const [categories, setCategories] = useState<Category[]>([])
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     api.get<Account[]>('/accounts').then(setAccounts)
     api.get<Category[]>('/categories/flat').then(setCategories)
     api.get<Snapshot[]>('/accounts/snapshots').then(setSnapshots).catch(() => setSnapshots([]))
@@ -47,6 +47,21 @@ export default function Dashboard() {
     })
     api.get<Transaction[]>(`/transactions?${params}`).then(setTransactions)
   }, [])
+
+  useEffect(() => {
+    refresh()
+    // Re-fetch whenever the tab becomes visible again so imports/edits made
+    // in another tab (or while idle) are picked up.
+    const onFocus = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    document.addEventListener('visibilitychange', onFocus)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      document.removeEventListener('visibilitychange', onFocus)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [refresh])
 
   const fmt = (n: number, digits = 0) =>
     new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-CA' : 'en-CA', {
@@ -240,13 +255,22 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">{t('dashboard.title')}</h1>
-        <p className="text-xs text-surface-500">
-          {now.toLocaleDateString(i18n.language === 'fr' ? 'fr-CA' : 'en-CA', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-          })}
-          {' · '}
-          {daysRemaining} days left in month
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-surface-500">
+            {now.toLocaleDateString(i18n.language === 'fr' ? 'fr-CA' : 'en-CA', {
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            })}
+            {' · '}
+            {daysRemaining} days left in month
+          </p>
+          <button
+            onClick={refresh}
+            className="text-surface-500 hover:text-blue-400"
+            title="Refresh dashboard"
+          >
+            <RefreshCw size={14} />
+          </button>
+        </div>
       </div>
 
       {/* ── Primary KPIs ─────────────────────────────────────────── */}

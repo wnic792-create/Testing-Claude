@@ -14,6 +14,7 @@ from backend.services.csv_parser import parse_csv, list_profiles
 from backend.services.ofx_parser import parse_ofx
 from backend.services.duplicate_detector import find_duplicates, compute_import_hash
 from backend.services.categorization import auto_categorize
+from backend.services import account_balance
 
 router = APIRouter()
 
@@ -65,6 +66,8 @@ async def import_csv(
         db.add(db_tx)
         created.append(db_tx)
 
+    db.flush()
+    account_balance.on_bulk_create(db, created)
     db.commit()
 
     return {
@@ -115,6 +118,8 @@ async def import_ofx(
         db.add(db_tx)
         created.append(db_tx)
 
+    db.flush()
+    account_balance.on_bulk_create(db, created)
     db.commit()
 
     return {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, RefreshCw } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Account } from '../../api/types'
 
@@ -49,6 +49,23 @@ export default function AccountPage() {
 
   const handleDelete = async (id: number) => {
     await api.delete(`/accounts/${id}`)
+    fetchAccounts()
+  }
+
+  const handleRecalculate = async (account: Account) => {
+    const msg =
+      `Reset "${account.name}" balance = opening + sum(transactions)?\n\n` +
+      `Enter the opening balance (what the account had before any transactions ` +
+      `were imported). Leave at 0 if the transactions already include every ` +
+      `movement that defines the balance.`
+    const input = prompt(msg, '0')
+    if (input === null) return
+    const opening = Number(input)
+    if (Number.isNaN(opening)) {
+      alert('Invalid number.')
+      return
+    }
+    await api.post(`/accounts/${account.id}/recalculate`, { opening_balance: opening })
     fetchAccounts()
   }
 
@@ -143,6 +160,13 @@ export default function AccountPage() {
                 <span className={`font-mono text-sm ${account.current_balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {formatAmount(account.current_balance, account.currency)}
                 </span>
+                <button
+                  onClick={() => handleRecalculate(account)}
+                  className="text-surface-500 hover:text-blue-400"
+                  title="Recalculate balance from transactions"
+                >
+                  <RefreshCw size={14} />
+                </button>
                 <button onClick={() => handleDelete(account.id)} className="text-surface-500 hover:text-red-400">
                   <Trash2 size={14} />
                 </button>
