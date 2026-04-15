@@ -17,9 +17,13 @@ import backend.models.settings
 from backend.routers import accounts, transactions, categories, import_export, budgets, forecast, scenarios, goals, backup
 from backend.database import SessionLocal
 from backend.services.category_seeder import seed_categories
+from backend.services.migrations import run_migrations
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Apply lightweight column-add migrations BEFORE create_all so models
+    # with newly-added columns don't blow up on legacy databases.
+    run_migrations(engine)
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
