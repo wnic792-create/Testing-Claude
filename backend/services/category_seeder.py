@@ -13,6 +13,41 @@ RULES_PATH = os.path.join(
 )
 
 
+TRANSFER_CATEGORY_NAMES = {"Investment", "Credit Card Payment"}
+
+
+def _backfill_transfer_categories(db: Session) -> None:
+    """
+    Ensure is_transfer_category is set on the two special categories and that
+    'Investment' exists under 'Financial' for DBs seeded before this feature.
+    """
+    cats = db.query(Category).all()
+    by_name: dict[str, Category] = {c.name: c for c in cats}
+
+    changed = False
+    for name in TRANSFER_CATEGORY_NAMES:
+        cat = by_name.get(name)
+        if cat and not cat.is_transfer_category:
+            cat.is_transfer_category = True
+            changed = True
+
+    # Create Investment child under Financial if missing
+    financial = by_name.get("Financial")
+    if financial and "Investment" not in by_name:
+        db.add(Category(
+            name="Investment",
+            name_fr="Investissement",
+            parent_id=financial.id,
+            type="expense",
+            is_system=False,
+            is_transfer_category=True,
+        ))
+        changed = True
+
+    if changed:
+        db.commit()
+
+
 def seed_categories(db: Session) -> int:
     """
     Seed default categories from default_categories.json if none exist.
@@ -22,6 +57,8 @@ def seed_categories(db: Session) -> int:
     if existing > 0:
         # Categories already exist — still ensure rules are seeded
         seed_rules(db)
+        # Back-fill is_transfer_category for existing DBs that predate this field
+        _backfill_transfer_categories(db)
         return 0
 
     with open(CATEGORIES_PATH, "r", encoding="utf-8") as f:
@@ -46,6 +83,7 @@ def seed_categories(db: Session) -> int:
                 parent_id=parent.id,
                 type=cat.get("type", "expense"),
                 is_system=child.get("is_system", False),
+                is_transfer_category=child.get("is_transfer_category", False),
             )
             db.add(child_cat)
             count += 1

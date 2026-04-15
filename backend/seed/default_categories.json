@@ -63,11 +63,12 @@
   {"name": "Financial", "name_fr": "Finances", "type": "expense", "children": [
     {"name": "Bank Fees", "name_fr": "Frais bancaires"},
     {"name": "Interest Charges", "name_fr": "Frais d'intérêt"},
-    {"name": "Insurance (Life)", "name_fr": "Assurance vie"}
+    {"name": "Insurance (Life)", "name_fr": "Assurance vie"},
+    {"name": "Investment", "name_fr": "Investissement", "is_transfer_category": true}
   ]},
   {"name": "Transfer", "name_fr": "Transfert", "type": "transfer", "is_system": true, "children": [
     {"name": "Internal Transfer", "name_fr": "Transfert interne"},
-    {"name": "Credit Card Payment", "name_fr": "Paiement carte de crédit"}
+    {"name": "Credit Card Payment", "name_fr": "Paiement carte de crédit", "is_transfer_category": true}
   ]},
   {"name": "Uncategorized", "name_fr": "Non catégorisé", "type": "expense", "is_system": true}
 ]

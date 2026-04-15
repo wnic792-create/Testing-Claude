@@ -38,6 +38,17 @@ class SplitItem(BaseModel):
     description: Optional[str] = None
 
 
+class TransferCreate(BaseModel):
+    from_account_id: int
+    to_account_id: int
+    date: str
+    description: str
+    amount: float          # positive value — money moving from → to
+    currency: str = "CAD"
+    category_id: Optional[int] = None
+    notes: Optional[str] = None
+
+
 @router.get("/")
 def list_transactions(
     account_id: Optional[int] = None,
@@ -143,6 +154,56 @@ def bulk_delete(
     return {"deleted": count}
 
 
+@router.post("/transfer", status_code=201)
+def create_transfer(body: TransferCreate, db: Session = Depends(get_db)):
+    """
+    Atomically create a linked pair of transactions representing an internal transfer.
+    The outflow leg (negative amount) is booked against from_account_id and the
+    inflow leg (positive amount) against to_account_id. Both share transfer_pair_id.
+    """
+    # Outflow from the source account
+    out_tx = Transaction(
+        account_id=body.from_account_id,
+        date=body.date,
+        description=body.description,
+        amount=-abs(body.amount),
+        currency=body.currency,
+        category_id=body.category_id,
+        is_transfer=True,
+        notes=body.notes,
+    )
+    db.add(out_tx)
+    db.flush()
+
+    # Inflow into the destination account
+    in_tx = Transaction(
+        account_id=body.to_account_id,
+        date=body.date,
+        description=body.description,
+        amount=abs(body.amount),
+        currency=body.currency,
+        category_id=body.category_id,
+        is_transfer=True,
+        transfer_pair_id=out_tx.id,
+        notes=body.notes,
+    )
+    db.add(in_tx)
+    db.flush()
+
+    # Cross-link
+    out_tx.transfer_pair_id = in_tx.id
+
+    # Update balances for both legs
+    account_balance.on_create(db, out_tx)
+    account_balance.on_create(db, in_tx)
+
+    db.commit()
+    db.refresh(out_tx)
+    db.refresh(in_tx)
+    return {"out": {c.name: getattr(out_tx, c.name) for c in Transaction.__table__.columns},
+            "in": {c.name: getattr(in_tx, c.name) for c in Transaction.__table__.columns}}
+
+
 @router.get("/{tx_id}")
 def get_transaction(tx_id: int, db: Session = Depends(get_db)):
     tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
@@ -175,6 +236,21 @@ def update_transaction(tx_id: int, updates: TransactionUpdate, db: Session = Dep
 
     account_balance.on_update(db, tx, old_amount, old_account_id)
 
+    # Mirror amount/date/description changes to the linked transfer pair
+    if tx.transfer_pair_id and ("amount" in payload or "date" in payload or "description" in payload):
+        pair = db.query(Transaction).filter(Transaction.id == tx.transfer_pair_id).first()
+        if pair:
+            pair_old_amount = pair.amount
+            pair_old_account_id = pair.account_id
+            if "amount" in payload:
+                # Pair leg has the opposite sign
+                pair.amount = -tx.amount if (pair.amount > 0) != (tx.amount > 0) else tx.amount
+            if "date" in payload:
+                pair.date = tx.date
+            if "description" in payload:
+                pair.description = tx.description
+            account_balance.on_update(db, pair, pair_old_amount, pair_old_account_id)
+
     db.commit()
     db.refresh(tx)
 
@@ -190,8 +266,18 @@ def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
     tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
+
+    # For linked transfers, delete the pair too
+    pair_id = tx.transfer_pair_id
     account_balance.on_delete(db, tx)
     db.delete(tx)
+
+    if pair_id:
+        pair = db.query(Transaction).filter(Transaction.id == pair_id).first()
+        if pair:
+            account_balance.on_delete(db, pair)
+            db.delete(pair)
+
     db.commit()
 
 

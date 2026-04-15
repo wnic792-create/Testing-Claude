@@ -13,6 +13,7 @@ class Category(Base):
     icon = Column(String, nullable=True)
     type = Column(String, default="expense")  # income | expense | transfer
     is_system = Column(Boolean, default=False)
+    is_transfer_category = Column(Boolean, default=False)
 
 
 class CategorizationRule(Base):

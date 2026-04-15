@@ -22,6 +22,7 @@ class CategoryUpdate(BaseModel):
     parent_id: Optional[int] = None
     icon: Optional[str] = None
     type: Optional[str] = None
+    is_transfer_category: Optional[bool] = None
 
 
 class RuleCreate(BaseModel):
@@ -51,6 +52,7 @@ def list_categories(db: Session = Depends(get_db)):
             "icon": cat.icon,
             "type": cat.type,
             "is_system": cat.is_system,
+            "is_transfer_category": cat.is_transfer_category,
             "children": [],
         }
         cat_map[cat.id] = cat_dict
