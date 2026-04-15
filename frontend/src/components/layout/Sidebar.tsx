@@ -9,6 +9,7 @@ import {
   GitBranch,
   Target,
   SlidersHorizontal,
+  Tags,
   Settings,
   Sun,
   Moon,
@@ -24,6 +25,7 @@ const navItems = [
   { path: '/scenarios', icon: GitBranch, labelKey: 'nav.scenarios' },
   { path: '/goals', icon: Target, labelKey: 'nav.goals' },
   { path: '/assumptions', icon: SlidersHorizontal, labelKey: 'nav.assumptions' },
+  { path: '/categories', icon: Tags, labelKey: 'nav.categories' },
   { path: '/settings', icon: Settings, labelKey: 'nav.settings' },
 ]
 

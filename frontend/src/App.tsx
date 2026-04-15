@@ -8,6 +8,7 @@ import ForecastPage from './components/forecast/ForecastPage'
 import AssumptionsPage from './components/forecast/AssumptionsPage'
 import ScenarioPage from './components/scenarios/ScenarioPage'
 import GoalPage from './components/goals/GoalPage'
+import CategoriesPage from './components/categories/CategoriesPage'
 import SettingsPage from './components/layout/SettingsPage'
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="scenarios" element={<ScenarioPage />} />
         <Route path="goals" element={<GoalPage />} />
         <Route path="assumptions" element={<AssumptionsPage />} />
+        <Route path="categories" element={<CategoriesPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

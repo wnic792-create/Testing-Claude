@@ -65,6 +65,23 @@ export default function TransactionList() {
     fetchTransactions()
   }
 
+  const handleDeleteAll = async () => {
+    const hasFilter = search || accountFilter || dateFrom || dateTo
+    const msg = hasFilter
+      ? `Delete ALL transactions matching the current filters? This cannot be undone.`
+      : `Delete ALL transactions in the database? This cannot be undone.`
+    if (!confirm(msg)) return
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (accountFilter) params.set('account_id', accountFilter)
+    if (dateFrom) params.set('date_from', dateFrom)
+    if (dateTo) params.set('date_to', dateTo)
+    const res = await fetch(`/api/transactions/bulk?${params}`, { method: 'DELETE' })
+    const result = res.ok ? await res.json() : null
+    alert(`Deleted ${result?.deleted ?? '?'} transactions.`)
+    fetchTransactions()
+  }
+
   const formatAmount = (amount: number, currency: string) => {
     return new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-CA' : 'en-CA', {
       style: 'currency',
@@ -109,6 +126,13 @@ export default function TransactionList() {
           onChange={e => { setDateTo(e.target.value); setPage(0) }}
           className="input w-36"
         />
+        <button
+          onClick={handleDeleteAll}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-red-400 border border-red-900 hover:bg-red-900/30 transition-colors"
+        >
+          <Trash2 size={12} />
+          Delete all filtered
+        </button>
       </div>
 
       {/* Table */}

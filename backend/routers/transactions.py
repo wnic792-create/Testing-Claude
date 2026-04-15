@@ -99,6 +99,30 @@ def categorize_uncategorized(db: Session = Depends(get_db)):
     return {"categorized": count, "checked": len(txs)}
 
 
+@router.delete("/bulk")
+def bulk_delete(
+    account_id: Optional[int] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """Delete all transactions matching the given filters. Returns count deleted."""
+    query = db.query(Transaction)
+    if account_id:
+        query = query.filter(Transaction.account_id == account_id)
+    if date_from:
+        query = query.filter(Transaction.date >= date_from)
+    if date_to:
+        query = query.filter(Transaction.date <= date_to)
+    if search:
+        query = query.filter(Transaction.description.ilike(f"%{search}%"))
+    count = query.count()
+    query.delete(synchronize_session=False)
+    db.commit()
+    return {"deleted": count}
+
+
 @router.get("/{tx_id}")
 def get_transaction(tx_id: int, db: Session = Depends(get_db)):
     tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
