@@ -26,12 +26,49 @@ const COLORS = [
   '#14b8a6', '#d946ef',
 ]
 
+type Period = 'this_month' | 'last_month' | 'last_3_months' | 'ytd' | 'last_12_months' | 'all'
+
+const PERIOD_LABELS: Record<Period, string> = {
+  this_month: 'This month',
+  last_month: 'Last month',
+  last_3_months: 'Last 3 months',
+  ytd: 'Year to date',
+  last_12_months: 'Last 12 months',
+  all: 'All time',
+}
+
+function periodRange(period: Period, now: Date): { start: string; end: string } {
+  const y = now.getFullYear()
+  const m = now.getMonth()
+  const iso = (d: Date) => d.toISOString().slice(0, 10)
+  const lastDay = (yr: number, mo: number) => new Date(yr, mo + 1, 0)
+  switch (period) {
+    case 'this_month':
+      return { start: iso(new Date(y, m, 1)), end: iso(lastDay(y, m)) }
+    case 'last_month':
+      return { start: iso(new Date(y, m - 1, 1)), end: iso(lastDay(y, m - 1)) }
+    case 'last_3_months':
+      return { start: iso(new Date(y, m - 2, 1)), end: iso(lastDay(y, m)) }
+    case 'ytd':
+      return { start: iso(new Date(y, 0, 1)), end: iso(now) }
+    case 'last_12_months':
+      return { start: iso(new Date(y, m - 11, 1)), end: iso(lastDay(y, m)) }
+    case 'all':
+      return { start: '0000-01-01', end: '9999-12-31' }
+  }
+}
+
+
 export default function Dashboard() {
   const { t, i18n } = useTranslation()
   const [accounts, setAccounts] = useState<Account[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [period, setPeriod] = useState<Period>('this_month')
+  // Tracks whether we've already auto-nudged the period once — so manual
+  // selection isn't overridden by a later re-fetch.
+  const [autoPicked, setAutoPicked] = useState(false)
 
   const refresh = useCallback(() => {
     api.get<Account[]>('/accounts').then(setAccounts)
@@ -87,29 +124,58 @@ export default function Dashboard() {
     .filter(a => a.is_asset && a.type === 'real_estate')
     .reduce((s, a) => s + a.current_balance, 0)
 
-  // --- Month-aware helpers -----------------------------------------------
+  // --- Period-aware helpers ----------------------------------------------
   const now = new Date()
-  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const { start: periodStart, end: periodEnd } = useMemo(
+    () => periodRange(period, now),
+    // `now` is rebuilt every render but the ISO slice only cares about the day
+    // — tie the memo to the period and today's ISO date.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [period, now.toDateString()],
+  )
   const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const prevYm = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`
+  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
   const eligible = useMemo(
     () => transactions.filter(tx => !tx.is_transfer && !tx.is_split),
     [transactions],
   )
 
-  // Current-month totals
+  // One-shot: if initial load lands on an empty "this month", jump the user
+  // to the most recent period that actually has data so the dashboard isn't
+  // confusingly blank.
+  useEffect(() => {
+    if (autoPicked) return
+    if (transactions.length === 0) return
+    if (period !== 'this_month') return
+    const hasThis = eligible.some(tx => tx.date.startsWith(currentYm))
+    if (hasThis) {
+      setAutoPicked(true)
+      return
+    }
+    // Find the latest month with any activity
+    const months = new Set(eligible.map(tx => tx.date.slice(0, 7)))
+    if (months.size === 0) return
+    const latest = [...months].sort().reverse()[0]
+    const prevYmStr = prevYm
+    if (latest === prevYmStr) setPeriod('last_month')
+    else setPeriod('last_12_months')
+    setAutoPicked(true)
+  }, [transactions, eligible, currentYm, prevYm, period, autoPicked])
+
+  // Period totals
   const { incomeThis, expenseThis } = useMemo(() => {
     let income = 0, expense = 0
     for (const tx of eligible) {
-      if (!tx.date.startsWith(currentYm)) continue
+      if (tx.date < periodStart || tx.date > periodEnd) continue
       if (tx.amount >= 0) income += tx.amount
       else expense += Math.abs(tx.amount)
     }
     return { incomeThis: income, expenseThis: expense }
-  }, [eligible, currentYm])
+  }, [eligible, periodStart, periodEnd])
 
-  // Previous-month totals (for deltas)
+  // Previous-month totals (used for the savings-rate comparison only)
   const { incomePrev, expensePrev } = useMemo(() => {
     let income = 0, expense = 0
     for (const tx of eligible) {
@@ -161,7 +227,7 @@ export default function Dashboard() {
     return Object.values(buckets)
   }, [eligible, i18n.language])
 
-  // Spending by category — current month
+  // Spending by category — selected period
   const spendByCategory = useMemo(() => {
     const catMap = Object.fromEntries(categories.map(c => [c.id, c]))
     const parentMap: Record<number, string> = {}
@@ -170,7 +236,7 @@ export default function Dashboard() {
     }
     const buckets: Record<string, number> = {}
     for (const tx of eligible) {
-      if (!tx.date.startsWith(currentYm)) continue
+      if (tx.date < periodStart || tx.date > periodEnd) continue
       if (tx.amount >= 0) continue
       const cat = tx.category_id ? catMap[tx.category_id] : null
       let label: string
@@ -182,24 +248,70 @@ export default function Dashboard() {
     return Object.entries(buckets)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
-  }, [eligible, categories, currentYm, i18n.language])
+  }, [eligible, categories, periodStart, periodEnd, i18n.language])
 
   const totalSpendThis = spendByCategory.reduce((s, c) => s + c.value, 0)
 
-  // Net worth series
-  const netWorthSeries = useMemo(
-    () => snapshots.map(s => ({ date: s.date, netWorth: s.net_worth })),
-    [snapshots],
-  )
-  const snapshot30Ago = useMemo(() => {
-    if (snapshots.length < 2) return null
+  // Net worth series — prefer real snapshots; otherwise reconstruct a 12-month
+  // trend by walking transactions backward from today's balance. This won't
+  // capture market-value changes on investments/real-estate, but for checking
+  // / savings / cards it's an honest picture of how net worth moved.
+  const netWorthSeries = useMemo(() => {
+    if (snapshots.length >= 2) {
+      return snapshots.map(s => ({ date: s.date, netWorth: s.net_worth, source: 'snapshot' as const }))
+    }
+    if (accounts.length === 0 || transactions.length === 0) return []
+    // Build month-end dates for the last 12 months (oldest first)
+    const points: { date: string; netWorth: number; source: 'derived' }[] = []
+    // Start with today's net worth and roll backwards, subtracting each
+    // month's signed transactions (for eligible / non-split, non-transfer txs).
+    // Liabilities are stored negative so tx.amount signs already compose.
+    const monthEnds: Date[] = []
+    for (let i = 0; i <= 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i + 1, 0) // last day of (month - i)
+      monthEnds.push(d)
+    }
+    // Include every non-split, non-transfer tx against an account we still have
+    const accountIds = new Set(accounts.map(a => a.id))
+    const relevant = transactions.filter(
+      tx => !tx.is_split && accountIds.has(tx.account_id),
+    )
+    let running = netWorth
+    // monthEnds[0] is the end of the current month — use today's net worth
+    for (let i = 0; i < monthEnds.length; i++) {
+      const endIso = monthEnds[i].toISOString().slice(0, 10)
+      if (i === 0) {
+        points.push({ date: endIso, netWorth: running, source: 'derived' })
+        continue
+      }
+      // Subtract all transactions that happened AFTER this month end but
+      // BEFORE the previous month end we already snapshotted.
+      const prevEndIso = monthEnds[i - 1].toISOString().slice(0, 10)
+      for (const tx of relevant) {
+        if (tx.date > endIso && tx.date <= prevEndIso) {
+          // These moved the balance between endIso and prevEndIso; to step
+          // back in time we undo their effect.
+          running -= tx.amount
+        }
+      }
+      points.push({ date: endIso, netWorth: running, source: 'derived' })
+    }
+    return points.reverse()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshots, accounts, transactions, netWorth, now.toDateString()])
+
+  const isDerived = netWorthSeries.length > 0 && netWorthSeries[0].source === 'derived'
+
+  // 30-day net-worth delta: prefer snapshot series, fall back to derived endpoints
+  const netWorthDelta = useMemo(() => {
+    if (netWorthSeries.length < 2) return null
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - 30)
     const iso = cutoff.toISOString().slice(0, 10)
-    const older = [...snapshots].reverse().find(s => s.date <= iso)
-    return older ?? snapshots[0]
-  }, [snapshots])
-  const netWorthDelta = snapshot30Ago ? netWorth - snapshot30Ago.net_worth : null
+    const older = [...netWorthSeries].reverse().find(s => s.date <= iso)
+    if (!older) return null
+    return netWorth - older.netWorth
+  }, [netWorthSeries, netWorth])
 
   // Recent transactions
   const recent = useMemo(
@@ -263,6 +375,16 @@ export default function Dashboard() {
             {' · '}
             {daysRemaining} days left in month
           </p>
+          <select
+            value={period}
+            onChange={e => { setAutoPicked(true); setPeriod(e.target.value as Period) }}
+            className="input text-xs py-1"
+            title="Period used for This Month / Savings Rate / Spending cards"
+          >
+            {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
+              <option key={p} value={p}>{PERIOD_LABELS[p]}</option>
+            ))}
+          </select>
           <button
             onClick={refresh}
             className="text-surface-500 hover:text-blue-400"
@@ -308,10 +430,10 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* This Month Net */}
+        {/* Period Net */}
         <div className="card">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-surface-400 uppercase tracking-wide">This Month</p>
+            <p className="text-xs text-surface-400 uppercase tracking-wide">{PERIOD_LABELS[period]} net</p>
             <Calendar size={14} className="text-surface-500" />
           </div>
           <p className={`text-2xl font-bold font-mono mt-1 ${netThis >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -326,7 +448,7 @@ export default function Dashboard() {
         {/* Savings Rate */}
         <div className="card">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-surface-400 uppercase tracking-wide">Savings Rate</p>
+            <p className="text-xs text-surface-400 uppercase tracking-wide">Savings rate</p>
             <Percent size={14} className="text-surface-500" />
           </div>
           <p className={`text-2xl font-bold font-mono mt-1 ${
@@ -407,7 +529,7 @@ export default function Dashboard() {
         {/* Spending by category */}
         <div className="card h-72 flex flex-col">
           <p className="text-xs text-surface-400 uppercase tracking-wide mb-2">
-            Spending this month · {fmt(totalSpendThis)}
+            Spending · {PERIOD_LABELS[period].toLowerCase()} · {fmt(totalSpendThis)}
           </p>
           {spendByCategory.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
@@ -431,7 +553,7 @@ export default function Dashboard() {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyChart hint="No expenses this month yet." />
+            <EmptyChart hint={`No expenses in ${PERIOD_LABELS[period].toLowerCase()}.`} />
           )}
         </div>
       </div>
@@ -440,26 +562,43 @@ export default function Dashboard() {
       <div className="grid grid-cols-3 gap-4">
         {/* Net worth trend */}
         <div className="card h-64 flex flex-col">
-          <p className="text-xs text-surface-400 uppercase tracking-wide mb-2">Net worth trend</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-surface-400 uppercase tracking-wide">Net worth trend</p>
+            {isDerived && (
+              <span className="text-[10px] text-surface-500 italic">
+                estimated · take snapshots for accuracy
+              </span>
+            )}
+          </div>
           {netWorthSeries.length >= 2 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={netWorthSeries} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-                <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 10 }} />
+                <XAxis
+                  dataKey="date"
+                  stroke="#94a3b8"
+                  tick={{ fontSize: 9 }}
+                  tickFormatter={v => v.slice(0, 7)}
+                />
                 <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} tickFormatter={v => fmtCompact(v)} width={70} />
                 <Tooltip
                   contentStyle={{ background: '#1e293b', border: '1px solid #334155', fontSize: 12 }}
-                  formatter={(v: number) => fmt(v)}
+                  formatter={(v: number) => [fmt(v), 'Net Worth']}
                 />
-                <Line type="monotone" dataKey="netWorth" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+                <Line
+                  type="monotone"
+                  dataKey="netWorth"
+                  stroke={isDerived ? '#6366f1' : '#3b82f6'}
+                  strokeWidth={2}
+                  strokeDasharray={isDerived ? '4 2' : undefined}
+                  dot={{ r: 2 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
               <p className="text-surface-500 text-sm mb-3">
-                {snapshots.length === 0
-                  ? 'No snapshots yet.'
-                  : 'Need at least 2 snapshots to chart.'}
+                Add transactions to see a trend, or take a manual snapshot.
               </p>
               <button
                 onClick={async () => {
@@ -477,7 +616,9 @@ export default function Dashboard() {
 
         {/* Top spending categories */}
         <div className="card flex flex-col">
-          <p className="text-xs text-surface-400 uppercase tracking-wide mb-3">Top spending · this month</p>
+          <p className="text-xs text-surface-400 uppercase tracking-wide mb-3">
+            Top spending · {PERIOD_LABELS[period].toLowerCase()}
+          </p>
           {spendByCategory.length > 0 ? (
             <div className="space-y-2 flex-1">
               {spendByCategory.slice(0, 6).map((c, i) => {
@@ -502,7 +643,7 @@ export default function Dashboard() {
               })}
             </div>
           ) : (
-            <p className="text-surface-500 text-sm">Nothing spent yet this month.</p>
+            <p className="text-surface-500 text-sm">Nothing spent in {PERIOD_LABELS[period].toLowerCase()}.</p>
           )}
         </div>
 
