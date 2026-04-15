@@ -136,14 +136,27 @@ def update_transaction(tx_id: int, updates: TransactionUpdate, db: Session = Dep
     tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
-    for key, value in updates.model_dump(exclude_unset=True).items():
+
+    learn_result = None
+    payload = updates.model_dump(exclude_unset=True)
+
+    # If category changed, learn from the correction BEFORE applying other updates
+    # so the rule is based on the current (unchanged) description.
+    if "category_id" in payload and payload["category_id"] is not None:
+        learn_result = learn_from_correction(db, tx_id, payload["category_id"])
+        payload.pop("category_id")  # already applied inside learn_from_correction
+
+    for key, value in payload.items():
         setattr(tx, key, value)
-    # If category changed, learn from the correction
-    if updates.category_id is not None:
-        learn_from_correction(db, tx_id, updates.category_id)
+
     db.commit()
     db.refresh(tx)
-    return tx
+
+    # Return the updated transaction + info about auto-applied categorization
+    response = {c.name: getattr(tx, c.name) for c in Transaction.__table__.columns}
+    if learn_result:
+        response["_learn"] = learn_result
+    return response
 
 
 @router.delete("/{tx_id}", status_code=204)

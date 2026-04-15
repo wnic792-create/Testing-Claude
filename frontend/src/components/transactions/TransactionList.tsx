@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Search, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Transaction, Account, Category } from '../../api/types'
+import CategoryCombobox from './CategoryCombobox'
 
 const PAGE_SIZE = 50
 
@@ -19,6 +20,7 @@ export default function TransactionList() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [page, setPage] = useState(0)
+  const [toast, setToast] = useState<string | null>(null)
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
@@ -41,8 +43,8 @@ export default function TransactionList() {
 
   useEffect(() => {
     api.get<Account[]>('/accounts').then(setAccounts)
-    api.get<Category[]>('/categories/flat').then(setCategories)
-  }, [])
+    fetchCategories()
+  }, [fetchCategories])
 
   const categoryMap = Object.fromEntries(categories.map(c => [c.id, c]))
   const accountMap = Object.fromEntries(accounts.map(a => [a.id, a]))
@@ -54,9 +56,33 @@ export default function TransactionList() {
     return i18n.language === 'fr' && cat.name_fr ? cat.name_fr : cat.name
   }
 
-  const handleCategoryChange = async (txId: number, categoryId: number) => {
-    await api.patch(`/transactions/${txId}`, { category_id: categoryId || null })
+  const fetchCategories = useCallback(() => {
+    return api.get<Category[]>('/categories/flat').then(setCategories)
+  }, [])
+
+  const handleCategoryChange = async (txId: number, categoryId: number | null) => {
+    const result = await api.patch<{ _learn?: { also_categorized: number } }>(
+      `/transactions/${txId}`,
+      { category_id: categoryId },
+    )
+    // If the backend auto-applied this category to other similar uncategorized
+    // transactions, briefly toast the count.
+    const also = result?._learn?.also_categorized || 0
+    if (also > 0) {
+      // Non-blocking notification
+      setToast(`Also categorized ${also} similar transaction${also === 1 ? '' : 's'}.`)
+      setTimeout(() => setToast(null), 2500)
+    }
     fetchTransactions()
+  }
+
+  const handleCreateCategory = async (name: string): Promise<Category> => {
+    const created = await api.post<Category>('/categories', {
+      name,
+      type: 'expense',
+    })
+    await fetchCategories()
+    return created
   }
 
   const handleDelete = async (txId: number) => {
@@ -160,18 +186,13 @@ export default function TransactionList() {
                   <td className="px-4 py-1.5 truncate max-w-xs" title={tx.description}>{tx.description}</td>
                   <td className="px-4 py-1.5 text-xs text-surface-400">{accountMap[tx.account_id]?.name || '—'}</td>
                   <td className="px-4 py-1.5">
-                    <select
-                      value={tx.category_id || ''}
-                      onChange={e => handleCategoryChange(tx.id, Number(e.target.value))}
-                      className="bg-transparent border border-surface-700 rounded px-1.5 py-0.5 text-xs w-full focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="">—</option>
-                      {categories.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {i18n.language === 'fr' && c.name_fr ? c.name_fr : c.name}
-                        </option>
-                      ))}
-                    </select>
+                    <CategoryCombobox
+                      value={tx.category_id}
+                      categories={categories}
+                      language={i18n.language}
+                      onChange={cid => handleCategoryChange(tx.id, cid)}
+                      onCreateCategory={handleCreateCategory}
+                    />
                   </td>
                   <td className={`px-4 py-1.5 text-right font-mono text-xs ${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {formatAmount(tx.amount, tx.currency)}
@@ -213,6 +234,12 @@ export default function TransactionList() {
           </button>
         </div>
       </div>
+
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 bg-green-900/90 border border-green-700 text-green-100 text-sm rounded px-4 py-2 shadow-lg">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

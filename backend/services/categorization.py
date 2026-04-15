@@ -68,27 +68,26 @@ def learn_from_correction(
     db: Session,
     transaction_id: int,
     new_category_id: int,
-) -> CategorizationRule | None:
+) -> dict:
     """
     When a user manually recategorizes a transaction, learn from it.
-    Creates or updates a categorization rule based on the merchant name.
+    Creates or updates a categorization rule based on the merchant name, then
+    applies that rule to any other uncategorized transactions that match.
 
-    Strategy: extract a normalized merchant name from the description,
-    create a regex rule, and mark it as 'learned'.
+    Returns: {"rule_id": int | None, "also_categorized": int}
     """
     tx = db.query(Transaction).filter(Transaction.id == transaction_id).first()
     if not tx:
-        return None
+        return {"rule_id": None, "also_categorized": 0}
 
     # Update the transaction's category
-    old_category_id = tx.category_id
     tx.category_id = new_category_id
 
     # Normalize the merchant name for pattern creation
     merchant = _normalize_merchant(tx.description)
     if not merchant or len(merchant) < 3:
         db.flush()
-        return None
+        return {"rule_id": None, "also_categorized": 0}
 
     # Escape regex special characters and create a case-insensitive pattern
     pattern = re.escape(merchant)
@@ -101,23 +100,44 @@ def learn_from_correction(
     )
 
     if existing:
-        # Update existing rule to new category
         existing.category_id = new_category_id
         existing.match_count += 1
-        db.flush()
-        return existing
-
-    # Create new learned rule
-    rule = CategorizationRule(
-        pattern=pattern,
-        category_id=new_category_id,
-        priority=10,  # learned rules get medium priority
-        source="learned",
-        match_count=1,
-    )
-    db.add(rule)
+        rule = existing
+    else:
+        rule = CategorizationRule(
+            pattern=pattern,
+            category_id=new_category_id,
+            priority=10,  # learned rules get medium priority
+            source="learned",
+            match_count=1,
+        )
+        db.add(rule)
     db.flush()
-    return rule
+
+    # Apply the new/updated rule to other uncategorized transactions matching
+    # the same merchant name. Uses a case-insensitive LIKE so we don't need to
+    # run the regex engine across the whole table.
+    like_pattern = f"%{merchant}%"
+    other_txs = (
+        db.query(Transaction)
+        .filter(
+            Transaction.id != transaction_id,
+            Transaction.category_id.is_(None),
+            Transaction.description.ilike(like_pattern),
+        )
+        .all()
+    )
+    also_count = 0
+    for other in other_txs:
+        # Double-check with the normalized merchant to avoid false positives
+        if _normalize_merchant(other.description).lower() == merchant.lower():
+            other.category_id = new_category_id
+            also_count += 1
+    if also_count:
+        rule.match_count += also_count
+        db.flush()
+
+    return {"rule_id": rule.id, "also_categorized": also_count}
 
 
 def _normalize_merchant(description: str) -> str:
