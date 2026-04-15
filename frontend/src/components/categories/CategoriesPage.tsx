@@ -71,6 +71,45 @@ export default function CategoriesPage() {
   const handleSetTransferDestination = async (cat: Category, accountId: number | null) => {
     setCategories(cs => cs.map(c => c.id === cat.id ? { ...c, default_transfer_account_id: accountId } : c))
     await api.patch(`/categories/${cat.id}`, { default_transfer_account_id: accountId })
+    // Refresh the candidate count for the apply button
+    refreshCandidateCount(cat.id)
+  }
+
+  // Map of category_id -> count of single-leg outflows that could be paired
+  const [candidateCounts, setCandidateCounts] = useState<Record<number, number>>({})
+
+  const refreshCandidateCount = async (categoryId: number) => {
+    try {
+      const res = await api.get<{ count: number }>(`/categories/${categoryId}/transfer-candidates`)
+      setCandidateCounts(c => ({ ...c, [categoryId]: res.count }))
+    } catch {
+      // ignore — endpoint is best-effort
+    }
+  }
+
+  // When categories load, refresh candidate counts for any flagged transfer-category
+  useEffect(() => {
+    for (const c of categories) {
+      if (c.is_transfer_category && c.default_transfer_account_id) {
+        refreshCandidateCount(c.id)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories.length])
+
+  const handleApplyTransfers = async (cat: Category) => {
+    const count = candidateCounts[cat.id] ?? 0
+    if (count === 0) return
+    const dest = accounts.find(a => a.id === cat.default_transfer_account_id)
+    const msg =
+      `Convert ${count} existing transaction${count === 1 ? '' : 's'} in "${catName(cat)}" ` +
+      `into transfers into "${dest?.name || '?'}"?\n\n` +
+      `This adds matching inflow legs to the destination account and updates its balance. ` +
+      `Cannot be undone in bulk — you'd have to delete each pair manually.`
+    if (!confirm(msg)) return
+    const res = await api.post<{ converted: number }>(`/categories/${cat.id}/apply-transfers`, {})
+    alert(`Converted ${res.converted} transaction${res.converted === 1 ? '' : 's'} into transfers.`)
+    refreshCandidateCount(cat.id)
   }
 
   // --- Rule actions ---
@@ -243,7 +282,7 @@ export default function CategoriesPage() {
                                   e.target.value ? Number(e.target.value) : null,
                                 )
                               }
-                              className="bg-surface-900 border border-surface-700 rounded px-1.5 py-0.5 text-xs text-surface-200 flex-1 max-w-[240px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="bg-surface-900 border border-surface-700 rounded px-1.5 py-0.5 text-xs text-surface-200 max-w-[200px] focus:outline-none focus:ring-1 focus:ring-blue-500"
                               title="Imports with this category will auto-pair a transfer into this account"
                             >
                               <option value="">No default — imports stay single-leg</option>
@@ -251,6 +290,15 @@ export default function CategoriesPage() {
                                 <option key={a.id} value={a.id}>{a.name}</option>
                               ))}
                             </select>
+                            {child.default_transfer_account_id && (candidateCounts[child.id] ?? 0) > 0 && (
+                              <button
+                                onClick={() => handleApplyTransfers(child)}
+                                className="px-2 py-0.5 rounded text-[10px] border border-amber-700 text-amber-400 hover:bg-amber-900/30 transition-colors"
+                                title="Convert existing single-leg transactions in this category into transfer pairs"
+                              >
+                                Apply to {candidateCounts[child.id]} existing
+                              </button>
+                            )}
                           </>
                         )}
 

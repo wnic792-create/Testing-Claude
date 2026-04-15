@@ -7,6 +7,7 @@ from backend.models.transaction import Transaction
 from backend.services.categorization import learn_from_correction, auto_categorize, categorize_batch
 from backend.services.recurring_detector import detect_recurring
 from backend.services import account_balance
+from backend.services.transfer_pairing import maybe_auto_pair
 
 router = APIRouter()
 
@@ -236,8 +237,13 @@ def update_transaction(tx_id: int, updates: TransactionUpdate, db: Session = Dep
 
     account_balance.on_update(db, tx, old_amount, old_account_id)
 
+    # If the new category is a transfer-category with a default destination,
+    # promote this single-leg tx into a paired transfer (idempotent — no-op
+    # if already paired, or if not an outflow).
+    auto_paired = maybe_auto_pair(db, tx)
+
     # Mirror amount/date/description changes to the linked transfer pair
-    if tx.transfer_pair_id and ("amount" in payload or "date" in payload or "description" in payload):
+    if tx.transfer_pair_id and not auto_paired and ("amount" in payload or "date" in payload or "description" in payload):
         pair = db.query(Transaction).filter(Transaction.id == tx.transfer_pair_id).first()
         if pair:
             pair_old_amount = pair.amount

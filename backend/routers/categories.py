@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from typing import Optional
 from backend.database import get_db
 from backend.models.category import Category, CategorizationRule
+from backend.models.transaction import Transaction
+from backend.services.transfer_pairing import backfill_transfers_for_category
 
 router = APIRouter()
 
@@ -92,6 +94,48 @@ def update_category(category_id: int, updates: CategoryUpdate, db: Session = Dep
     db.commit()
     db.refresh(cat)
     return cat
+
+
+@router.get("/{category_id}/transfer-candidates")
+def count_transfer_candidates(category_id: int, db: Session = Depends(get_db)):
+    """
+    Count existing single-leg outflow transactions in this category that could
+    be retroactively converted into transfer pairs. Used by the UI to decide
+    whether to show an "apply to existing" button.
+    """
+    cat = db.query(Category).filter(Category.id == category_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    count = (
+        db.query(Transaction)
+        .filter(
+            Transaction.category_id == category_id,
+            Transaction.transfer_pair_id.is_(None),
+            Transaction.parent_tx_id.is_(None),
+            Transaction.amount < 0,
+        )
+        .count()
+    )
+    return {"category_id": category_id, "count": count}
+
+
+@router.post("/{category_id}/apply-transfers")
+def apply_transfers(category_id: int, db: Session = Depends(get_db)):
+    """
+    Retroactively convert every eligible single-leg outflow in this category
+    into a linked transfer pair, using the category's default destination
+    account. Requires is_transfer_category=true and a destination configured.
+    """
+    cat = db.query(Category).filter(Category.id == category_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    if not cat.is_transfer_category:
+        raise HTTPException(status_code=400, detail="Category is not flagged as a transfer category")
+    if not cat.default_transfer_account_id:
+        raise HTTPException(status_code=400, detail="No default destination set for this category")
+    converted = backfill_transfers_for_category(db, category_id)
+    db.commit()
+    return {"category_id": category_id, "converted": converted}
 
 
 @router.delete("/{category_id}", status_code=204)
