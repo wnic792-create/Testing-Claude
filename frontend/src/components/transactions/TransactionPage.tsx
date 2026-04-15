@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Upload, Download, Wand2 } from 'lucide-react'
+import { Upload, Download, Wand2, Zap } from 'lucide-react'
 import TransactionList from './TransactionList'
 import ImportDialog from './ImportDialog'
 import { api } from '../../api/client'
@@ -28,6 +28,18 @@ export default function TransactionPage() {
     setRefreshKey(k => k + 1)
   }
 
+  const handleForceRecategorize = async () => {
+    const msg =
+      'Recategorize ALL transactions using current rule priorities? ' +
+      'This will overwrite existing categories on any transaction that now matches a different rule.'
+    if (!confirm(msg)) return
+    const result = await api.post<{ categorized: number; checked: number }>(
+      '/transactions/recategorize-all',
+    )
+    alert(`Changed category on ${result.categorized} of ${result.checked} transactions.`)
+    setRefreshKey(k => k + 1)
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-surface-700">
@@ -36,10 +48,18 @@ export default function TransactionPage() {
           <button
             onClick={handleRecategorize}
             className="btn-secondary flex items-center gap-2"
-            title={t('transactions.recategorize') || 'Auto-categorize uncategorized transactions'}
+            title="Auto-categorize only transactions that currently have no category"
           >
             <Wand2 size={14} />
             {t('transactions.recategorize') || 'Recategorize'}
+          </button>
+          <button
+            onClick={handleForceRecategorize}
+            className="flex items-center gap-2 px-3 py-1.5 rounded text-xs border border-amber-700 text-amber-400 hover:bg-amber-900/30 transition-colors"
+            title="Re-run all rules in priority order and overwrite existing categories"
+          >
+            <Zap size={14} />
+            Recategorize all
           </button>
           <a
             href="/api/import/export/csv"

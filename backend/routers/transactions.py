@@ -99,6 +99,19 @@ def categorize_uncategorized(db: Session = Depends(get_db)):
     return {"categorized": count, "checked": len(txs)}
 
 
+@router.post("/recategorize-all")
+def recategorize_all(db: Session = Depends(get_db)):
+    """
+    Re-run categorization against every transaction using the current rules
+    (ordered by priority desc). Overwrites existing categories — use when rule
+    priorities change and you want them reflected across the full history.
+    """
+    txs = db.query(Transaction).all()
+    count = categorize_batch(db, txs, force=True)
+    db.commit()
+    return {"categorized": count, "checked": len(txs)}
+
+
 @router.delete("/bulk")
 def bulk_delete(
     account_id: Optional[int] = None,

@@ -33,10 +33,19 @@ def auto_categorize(db: Session, description: str) -> int | None:
     return None
 
 
-def categorize_batch(db: Session, transactions: list[Transaction]) -> int:
+def categorize_batch(
+    db: Session,
+    transactions: list[Transaction],
+    force: bool = False,
+) -> int:
     """
-    Apply auto-categorization to a batch of uncategorized transactions.
-    Returns count of successfully categorized transactions.
+    Apply auto-categorization to a batch of transactions.
+
+    By default only uncategorized transactions are touched. Pass force=True to
+    overwrite existing categories (use this when rule priorities change and you
+    want them re-applied across the full history).
+
+    Returns count of transactions whose category was changed.
     """
     rules = (
         db.query(CategorizationRule)
@@ -46,16 +55,17 @@ def categorize_batch(db: Session, transactions: list[Transaction]) -> int:
 
     categorized = 0
     for tx in transactions:
-        if tx.category_id is not None:
+        if tx.category_id is not None and not force:
             continue
 
         description_lower = tx.description.lower()
         for rule in rules:
             try:
                 if re.search(rule.pattern, description_lower, re.IGNORECASE):
-                    tx.category_id = rule.category_id
-                    rule.match_count += 1
-                    categorized += 1
+                    if tx.category_id != rule.category_id:
+                        tx.category_id = rule.category_id
+                        rule.match_count += 1
+                        categorized += 1
                     break
             except re.error:
                 continue
@@ -114,21 +124,23 @@ def learn_from_correction(
         db.add(rule)
     db.flush()
 
-    # Apply the new/updated rule to other uncategorized transactions matching
-    # the same merchant name. Uses a case-insensitive LIKE so we don't need to
-    # run the regex engine across the whole table.
+    # Apply the new/updated rule to every other transaction matching the same
+    # merchant name — including ones that already have a different category.
+    # Users expect "I just told the system Fidelity Investme = Investment" to
+    # sweep the rest of their Fidelity Investme history too.
     like_pattern = f"%{merchant}%"
     other_txs = (
         db.query(Transaction)
         .filter(
             Transaction.id != transaction_id,
-            Transaction.category_id.is_(None),
             Transaction.description.ilike(like_pattern),
         )
         .all()
     )
     also_count = 0
     for other in other_txs:
+        if other.category_id == new_category_id:
+            continue  # already correct
         # Double-check with the normalized merchant to avoid false positives
         if _normalize_merchant(other.description).lower() == merchant.lower():
             other.category_id = new_category_id
