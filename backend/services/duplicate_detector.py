@@ -25,7 +25,9 @@ def find_duplicates(
         transactions: List of parsed transaction dicts (date, description, amount).
 
     Returns:
-        Tuple of (new_transactions, duplicate_transactions).
+        Tuple of (new_transactions, duplicate_items). Each duplicate item is
+        a dict {"incoming": <parsed row>, "existing": <existing row summary>}
+        so the UI can show "you're about to re-import X, which matches Y".
     """
     # Compute hashes for all incoming transactions
     for tx in transactions:
@@ -35,24 +37,43 @@ def find_duplicates(
 
     incoming_hashes = [tx["import_hash"] for tx in transactions]
 
-    # Query existing hashes for this account in one batch
-    existing_hashes = set(
-        h[0] for h in db.query(Transaction.import_hash)
+    # Fetch existing rows (not just hashes) so we can describe the match
+    existing_rows = (
+        db.query(Transaction)
         .filter(
             Transaction.account_id == account_id,
             Transaction.import_hash.in_(incoming_hashes),
         )
         .all()
     )
+    existing_by_hash: dict[str, Transaction] = {r.import_hash: r for r in existing_rows}
 
-    new_txs = []
-    dup_txs = []
+    new_txs: list[dict] = []
+    dup_items: list[dict] = []
+    seen_in_batch: set[str] = set()
     for tx in transactions:
-        if tx["import_hash"] in existing_hashes:
-            dup_txs.append(tx)
+        h = tx["import_hash"]
+        if h in existing_by_hash:
+            e = existing_by_hash[h]
+            dup_items.append({
+                "incoming": tx,
+                "existing": {
+                    "id": e.id,
+                    "date": e.date,
+                    "description": e.description,
+                    "amount": e.amount,
+                    "currency": e.currency,
+                    "category_id": e.category_id,
+                },
+            })
+        elif h in seen_in_batch:
+            # Intra-file duplicate — flag it but we don't have an existing row
+            dup_items.append({
+                "incoming": tx,
+                "existing": None,
+            })
         else:
             new_txs.append(tx)
-            # Also track within the batch to catch intra-file duplicates
-            existing_hashes.add(tx["import_hash"])
+            seen_in_batch.add(h)
 
-    return new_txs, dup_txs
+    return new_txs, dup_items

@@ -4,8 +4,9 @@ import json
 
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Any, Optional
 
 from backend.database import get_db
 from backend.models.account import Account
@@ -143,6 +144,7 @@ async def import_csv(
         "auto_categorized": sum(1 for tx in created if tx.category_id is not None and not (tx.is_transfer and tx.amount > 0)),
         "auto_transferred": paired_count,
         "filename": file.filename,
+        "duplicates": dup_txs,
     }
 
 
@@ -188,6 +190,59 @@ async def import_ofx(
         "auto_categorized": sum(1 for tx in created if tx.category_id is not None and not (tx.is_transfer and tx.amount > 0)),
         "auto_transferred": paired_count,
         "filename": file.filename,
+        "duplicates": dup_txs,
+    }
+
+
+class ForceImportItem(BaseModel):
+    date: str
+    description: str
+    amount: float
+    currency: Optional[str] = None
+    import_hash: Optional[str] = None
+
+
+class ForceImportRequest(BaseModel):
+    account_id: int
+    filename: Optional[str] = None
+    transactions: list[ForceImportItem]
+
+
+@router.post("/force-import")
+def force_import(body: ForceImportRequest, db: Session = Depends(get_db)):
+    """
+    Re-import a set of transactions the user explicitly confirmed, even though
+    they matched existing rows by hash. Bypasses dedup entirely.
+    """
+    account = db.query(Account).filter(Account.id == body.account_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    created: list[Transaction] = []
+    paired_count = 0
+    for item in body.transactions:
+        tx_data: dict[str, Any] = {
+            "date": item.date,
+            "description": item.description,
+            "amount": item.amount,
+            "currency": item.currency or account.currency,
+            "import_hash": item.import_hash or compute_import_hash(
+                item.date, item.amount, item.description
+            ),
+        }
+        rows, was_paired = _create_imported_row(db, account, tx_data, body.filename)
+        created.extend(rows)
+        if was_paired:
+            paired_count += 1
+
+    db.flush()
+    account_balance.on_bulk_create(db, created)
+    db.commit()
+
+    return {
+        "imported": len(body.transactions),
+        "auto_transferred": paired_count,
+        "filename": body.filename,
     }
 
 

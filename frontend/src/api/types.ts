@@ -56,12 +56,35 @@ export interface BankProfile {
   institution: string
 }
 
+export interface ImportDuplicateIncoming {
+  date: string
+  description: string
+  amount: number
+  currency?: string
+  import_hash?: string
+}
+
+export interface ImportDuplicateExisting {
+  id: number
+  date: string
+  description: string
+  amount: number
+  currency: string
+  category_id: number | null
+}
+
+export interface ImportDuplicate {
+  incoming: ImportDuplicateIncoming
+  existing: ImportDuplicateExisting | null
+}
+
 export interface ImportResult {
   imported: number
   duplicates_skipped: number
   auto_categorized: number
   auto_transferred?: number
   filename: string
+  duplicates?: ImportDuplicate[]
 }
 
 export interface Budget {
