@@ -78,6 +78,8 @@ export default function ForecastPage() {
     }).format(n)
 
   // Merge forecast data for charting
+  // Track cumulative totals per scenario for the savings & growth view
+  const cumulatives: Record<string, { savings: number; growth: number }> = {}
   const chartData = forecasts.length > 0
     ? forecasts[0].months.map((m, i) => {
         const point: Record<string, string | number> = { date: m.date_label }
@@ -85,14 +87,17 @@ export default function ForecastPage() {
           const fm = f.months[i]
           if (!fm) continue
           const prefix = f.scenario_name
+          if (!cumulatives[prefix]) cumulatives[prefix] = { savings: 0, growth: 0 }
+          cumulatives[prefix].savings += fm.savings_contributions
+          cumulatives[prefix].growth += fm.investment_growth
           point[`${prefix}_nw`] = fm.net_worth
           point[`${prefix}_assets`] = fm.assets
           point[`${prefix}_liab`] = fm.liabilities
           point[`${prefix}_income`] = fm.income
           point[`${prefix}_expenses`] = fm.expenses
           point[`${prefix}_cashflow`] = fm.net_cash_flow
-          point[`${prefix}_inv_growth`] = fm.investment_growth
-          point[`${prefix}_savings`] = fm.savings_contributions
+          point[`${prefix}_cum_savings`] = Math.round(cumulatives[prefix].savings)
+          point[`${prefix}_cum_growth`] = Math.round(cumulatives[prefix].growth)
         }
         return point
       })
@@ -250,7 +255,7 @@ export default function ForecastPage() {
                   ))}
                 </BarChart>
               ) : chartView === 'investment_growth' ? (
-                <BarChart data={chartData}>
+                <AreaChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
                   <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={v => formatCurrency(v)} />
@@ -260,12 +265,12 @@ export default function ForecastPage() {
                   />
                   <Legend />
                   {forecasts.map(f => (
-                    <Bar key={`${f.scenario_id}_s`} dataKey={`${f.scenario_name}_savings`} name={`${f.scenario_name} Contributions`} fill="#3b82f6" stackId={`stack_${f.scenario_id}`} />
+                    <Area key={`${f.scenario_id}_s`} type="monotone" dataKey={`${f.scenario_name}_cum_savings`} name={`${f.scenario_name} Total Contributed`} stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} strokeWidth={2} stackId={`stack_${f.scenario_id}`} />
                   ))}
                   {forecasts.map(f => (
-                    <Bar key={`${f.scenario_id}_g`} dataKey={`${f.scenario_name}_inv_growth`} name={`${f.scenario_name} Growth`} fill="#22c55e" stackId={`stack_${f.scenario_id}`} />
+                    <Area key={`${f.scenario_id}_g`} type="monotone" dataKey={`${f.scenario_name}_cum_growth`} name={`${f.scenario_name} Total Growth`} stroke="#22c55e" fill="#22c55e" fillOpacity={0.4} strokeWidth={2} stackId={`stack_${f.scenario_id}`} />
                   ))}
-                </BarChart>
+                </AreaChart>
               ) : (
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
