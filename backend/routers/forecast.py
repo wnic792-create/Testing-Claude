@@ -278,6 +278,7 @@ class SavingsContribCreate(BaseModel):
     frequency: str = "monthly"
     start_month: int = 0
     end_month: Optional[int] = None
+    expected_return_rate: Optional[float] = None
 
 
 @router.get("/{scenario_id}/savings")

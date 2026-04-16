@@ -161,7 +161,7 @@ def clone_scenario(scenario_id: int, name: Optional[str] = None, db: Session = D
         new_contrib = SavingsContribution(
             scenario_id=clone.id, account_id=contrib.account_id, amount=contrib.amount,
             frequency=contrib.frequency, start_month=contrib.start_month,
-            end_month=contrib.end_month,
+            end_month=contrib.end_month, expected_return_rate=contrib.expected_return_rate,
         )
         db.add(new_contrib)
 

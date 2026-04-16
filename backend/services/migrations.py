@@ -18,6 +18,7 @@ from sqlalchemy.engine import Engine
 REQUIRED_COLUMNS: list[tuple[str, str, str]] = [
     ("categories", "is_transfer_category", "BOOLEAN DEFAULT 0"),
     ("categories", "default_transfer_account_id", "INTEGER"),
+    ("savings_contributions", "expected_return_rate", "REAL"),
 ]
 
 

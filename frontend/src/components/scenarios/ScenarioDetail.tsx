@@ -29,7 +29,7 @@ interface DebtAccount {
 
 interface SavingsContrib {
   id: number; account_id: number; amount: number; frequency: string
-  start_month: number; end_month: number | null
+  start_month: number; end_month: number | null; expected_return_rate: number | null
 }
 
 type Tab = 'income' | 'expenses' | 'events' | 'debts' | 'savings'
@@ -69,7 +69,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
     { key: 'expenses', label: 'Expenses', count: expenses.length },
     { key: 'events', label: 'Events', count: events.length },
     { key: 'debts', label: 'Debts', count: debts.length },
-    { key: 'savings', label: 'Savings', count: savings.length },
+    { key: 'savings', label: 'Savings & Investments', count: savings.length },
   ]
 
   return (
@@ -275,22 +275,50 @@ function DebtTab({ sid, debts, accounts, onRefresh }: { sid: number; debts: Debt
 }
 
 function SavingsTab({ sid, savings, accounts, onRefresh }: { sid: number; savings: SavingsContrib[]; accounts: Account[]; onRefresh: () => void }) {
-  const [form, setForm] = useState({ account_id: '', amount: 0, frequency: 'monthly', start_month: 0 })
+  const [form, setForm] = useState({ account_id: '', amount: 0, frequency: 'monthly', start_month: 0, expected_return_rate: '' })
   const [adding, setAdding] = useState(false)
 
   const handleAdd = async () => {
-    await api.post(`/forecast/${sid}/savings`, { ...form, account_id: Number(form.account_id) })
+    await api.post(`/forecast/${sid}/savings`, {
+      ...form,
+      account_id: Number(form.account_id),
+      expected_return_rate: form.expected_return_rate ? Number(form.expected_return_rate) : null,
+    })
     setAdding(false)
+    setForm({ account_id: '', amount: 0, frequency: 'monthly', start_month: 0, expected_return_rate: '' })
     onRefresh()
   }
 
+  const projectValue = (s: SavingsContrib) => {
+    const rate = s.expected_return_rate
+    if (rate === null || rate === undefined) return null
+    const monthlyRate = Math.pow(1 + rate / 100, 1 / 12) - 1
+    const months = 60 - s.start_month
+    const endMonth = s.end_month !== null ? Math.min(s.end_month, 59) : 59
+    const contribMonths = endMonth - s.start_month + 1
+    let monthlyAmount = s.amount
+    if (s.frequency === 'biweekly') monthlyAmount = s.amount * 26 / 12
+    if (s.frequency === 'annual') monthlyAmount = s.amount / 12
+    // FV of annuity: PMT × ((1+r)^n - 1) / r
+    if (monthlyRate === 0) return monthlyAmount * contribMonths
+    const fv = monthlyAmount * (Math.pow(1 + monthlyRate, contribMonths) - 1) / monthlyRate
+    // Then compound the result for remaining months after contributions stop
+    const remainingMonths = months - contribMonths
+    return fv * Math.pow(1 + monthlyRate, Math.max(0, remainingMonths))
+  }
+
+  const acctName = (id: number) => accounts.find(a => a.id === id)?.name || '—'
+
   return (
     <div>
-      <div className="flex justify-end mb-3">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs text-surface-500">
+          Set an expected return rate per contribution to model compound growth in the forecast.
+        </p>
         <button onClick={() => setAdding(!adding)} className="btn-primary flex items-center gap-1.5 text-xs"><Plus size={12} /> Add contribution</button>
       </div>
       {adding && (
-        <div className="card mb-4 grid grid-cols-4 gap-2">
+        <div className="card mb-4 grid grid-cols-5 gap-2">
           <select value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })} className="input">
             <option value="">Select account...</option>{accounts.filter(a => a.is_asset).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
@@ -298,17 +326,70 @@ function SavingsTab({ sid, savings, accounts, onRefresh }: { sid: number; saving
           <select value={form.frequency} onChange={e => setForm({ ...form, frequency: e.target.value })} className="input">
             <option value="monthly">Monthly</option><option value="biweekly">Biweekly</option><option value="annual">Annual</option>
           </select>
+          <input type="number" placeholder="Return % (e.g. 7)" step="0.1" value={form.expected_return_rate} onChange={e => setForm({ ...form, expected_return_rate: e.target.value })} className="input" />
           <button onClick={handleAdd} disabled={!form.account_id} className="btn-primary">Save</button>
         </div>
       )}
-      <Table
-        headers={['Account', 'Amount', 'Frequency', 'Start Mo.', '']}
-        rows={savings.map(s => ({
-          id: s.id,
-          cells: [accounts.find(a => a.id === s.account_id)?.name || '—', `$${s.amount.toLocaleString()}`, s.frequency, String(s.start_month)],
-        }))}
-        onDelete={async (id) => { await api.delete(`/forecast/${sid}/savings/${id}`); onRefresh() }}
-      />
+      {savings.length === 0 ? (
+        <p className="text-surface-500 text-sm py-4">No items yet.</p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-xs text-surface-400 uppercase border-b border-surface-700">
+            <th className="px-3 py-2">Account</th>
+            <th className="px-3 py-2">Amount</th>
+            <th className="px-3 py-2">Frequency</th>
+            <th className="px-3 py-2">Return %</th>
+            <th className="px-3 py-2">Projected (5yr)</th>
+            <th className="px-3 py-2">Start Mo.</th>
+            <th className="px-3 py-2"></th>
+          </tr></thead>
+          <tbody className="divide-y divide-surface-800">
+            {savings.map(s => {
+              const proj = projectValue(s)
+              const totalContrib = (() => {
+                let mo = s.amount
+                if (s.frequency === 'biweekly') mo = s.amount * 26 / 12
+                if (s.frequency === 'annual') mo = s.amount / 12
+                const months = (s.end_month !== null ? Math.min(s.end_month, 59) : 59) - s.start_month + 1
+                return mo * months
+              })()
+              const growthPortion = proj !== null ? proj - totalContrib : null
+              return (
+                <tr key={s.id} className="hover:bg-surface-800/50">
+                  <td className="px-3 py-2 font-mono text-xs">{acctName(s.account_id)}</td>
+                  <td className="px-3 py-2 font-mono text-xs">${s.amount.toLocaleString()}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{s.frequency}</td>
+                  <td className="px-3 py-2 font-mono text-xs">
+                    {s.expected_return_rate !== null ? (
+                      <span className="text-blue-400">{s.expected_return_rate}%</span>
+                    ) : (
+                      <span className="text-surface-500">default</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs">
+                    {proj !== null ? (
+                      <div>
+                        <span className="text-surface-200">${Math.round(proj).toLocaleString()}</span>
+                        {growthPortion !== null && growthPortion > 0 && (
+                          <span className="text-green-400 text-[10px] ml-1.5">
+                            +${Math.round(growthPortion).toLocaleString()} interest
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-surface-500">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs">{s.start_month}</td>
+                  <td className="px-3 py-2 text-right">
+                    <button onClick={async () => { await api.delete(`/forecast/${sid}/savings/${s.id}`); onRefresh() }} className="text-surface-500 hover:text-red-400"><Trash2 size={13} /></button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }

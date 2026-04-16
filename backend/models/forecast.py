@@ -86,3 +86,4 @@ class SavingsContribution(Base):
     frequency = Column(String, default="monthly")
     start_month = Column(Integer, default=0)
     end_month = Column(Integer, nullable=True)
+    expected_return_rate = Column(Float, nullable=True)

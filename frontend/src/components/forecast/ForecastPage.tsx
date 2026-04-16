@@ -14,6 +14,8 @@ interface ForecastMonth {
   expenses: number
   tax: number
   net_cash_flow: number
+  savings_contributions: number
+  investment_growth: number
   assets: number
   liabilities: number
   net_worth: number
@@ -32,11 +34,12 @@ interface ForecastResult {
     total_expenses: number
     total_tax: number
     total_savings: number
+    total_investment_growth: number
   }
 }
 
 type Granularity = 'monthly' | 'quarterly' | 'yearly'
-type ChartView = 'net_worth' | 'cash_flow' | 'assets_liabilities'
+type ChartView = 'net_worth' | 'cash_flow' | 'assets_liabilities' | 'investment_growth'
 
 export default function ForecastPage() {
   const { t, i18n } = useTranslation()
@@ -88,6 +91,8 @@ export default function ForecastPage() {
           point[`${prefix}_income`] = fm.income
           point[`${prefix}_expenses`] = fm.expenses
           point[`${prefix}_cashflow`] = fm.net_cash_flow
+          point[`${prefix}_inv_growth`] = fm.investment_growth
+          point[`${prefix}_savings`] = fm.savings_contributions
         }
         return point
       })
@@ -144,20 +149,33 @@ export default function ForecastPage() {
         <>
           {/* Summary cards (first selected scenario) */}
           {primary && (
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="card">
-                <p className="text-xs text-surface-400 uppercase">Starting NW</p>
+                <p className="text-xs text-surface-400 uppercase">Starting Net Worth</p>
                 <p className="text-lg font-bold font-mono mt-1">{formatCurrency(primary.summary.starting_net_worth)}</p>
               </div>
               <div className="card">
-                <p className="text-xs text-surface-400 uppercase">Ending NW (5yr)</p>
+                <p className="text-xs text-surface-400 uppercase">Ending Net Worth (5yr)</p>
                 <p className="text-lg font-bold font-mono mt-1">{formatCurrency(primary.summary.ending_net_worth)}</p>
               </div>
               <div className="card">
-                <p className="text-xs text-surface-400 uppercase">NW Change</p>
+                <p className="text-xs text-surface-400 uppercase">Net Worth Change</p>
                 <p className={`text-lg font-bold font-mono mt-1 ${primary.summary.net_worth_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {formatCurrency(primary.summary.net_worth_change)}
                 </p>
+              </div>
+              <div className="card">
+                <p className="text-xs text-surface-400 uppercase">Total Savings Contributed</p>
+                <p className="text-lg font-bold font-mono text-blue-400 mt-1">{formatCurrency(primary.summary.total_savings)}</p>
+              </div>
+              <div className="card">
+                <p className="text-xs text-surface-400 uppercase">Investment Growth (5yr)</p>
+                <p className="text-lg font-bold font-mono text-green-400 mt-1">{formatCurrency(primary.summary.total_investment_growth)}</p>
+                {primary.summary.total_savings > 0 && (
+                  <p className="text-[10px] text-surface-500 mt-0.5">
+                    {Math.round(primary.summary.total_investment_growth / primary.summary.total_savings * 100)}% return on contributions
+                  </p>
+                )}
               </div>
               <div className="card">
                 <p className="text-xs text-surface-400 uppercase">Total Tax (5yr)</p>
@@ -171,6 +189,7 @@ export default function ForecastPage() {
             {([
               ['net_worth', 'Net Worth'],
               ['cash_flow', 'Cash Flow'],
+              ['investment_growth', 'Savings & Growth'],
               ['assets_liabilities', 'Assets vs Liabilities'],
             ] as [ChartView, string][]).map(([key, label]) => (
               <button
@@ -228,6 +247,23 @@ export default function ForecastPage() {
                       name={f.scenario_name}
                       fill={f.scenario_color}
                     />
+                  ))}
+                </BarChart>
+              ) : chartView === 'investment_growth' ? (
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={v => formatCurrency(v)} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: 6, fontSize: 12 }}
+                    formatter={(v: number) => formatCurrency(v)}
+                  />
+                  <Legend />
+                  {forecasts.map(f => (
+                    <Bar key={`${f.scenario_id}_s`} dataKey={`${f.scenario_name}_savings`} name={`${f.scenario_name} Contributions`} fill="#3b82f6" stackId={`stack_${f.scenario_id}`} />
+                  ))}
+                  {forecasts.map(f => (
+                    <Bar key={`${f.scenario_id}_g`} dataKey={`${f.scenario_name}_inv_growth`} name={`${f.scenario_name} Growth`} fill="#22c55e" stackId={`stack_${f.scenario_id}`} />
                   ))}
                 </BarChart>
               ) : (

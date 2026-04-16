@@ -82,12 +82,21 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
     tfsa_room = assumptions.tfsa_room
     fhsa_room = assumptions.fhsa_room
 
+    # Build per-account return rate overrides from savings contributions.
+    # If a contribution sets expected_return_rate, it takes priority over
+    # the account-level interest_rate and the global assumption.
+    contrib_return_overrides: dict[int, float] = {}
+    for contrib in savings:
+        if contrib.expected_return_rate is not None:
+            contrib_return_overrides[contrib.account_id] = contrib.expected_return_rate
+
     # Results
     months_data = []
     total_income = 0.0
     total_expenses = 0.0
     total_tax = 0.0
     total_savings = 0.0
+    total_investment_growth = 0.0
 
     # Compute starting date label
     import datetime
@@ -219,18 +228,32 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
                 month_savings_contrib += amount
 
         # --- Investment returns (monthly compounding) ---
+        month_investment_growth = 0.0
         for acct_id, acct in account_map.items():
             if acct_id not in balances:
                 continue
             if acct.type in ("tfsa", "rrsp", "fhsa", "non_registered"):
-                rate = acct.interest_rate if acct.interest_rate is not None else assumptions.investment_return_rate
+                if acct_id in contrib_return_overrides:
+                    rate = contrib_return_overrides[acct_id]
+                elif acct.interest_rate is not None:
+                    rate = acct.interest_rate
+                else:
+                    rate = assumptions.investment_return_rate
                 monthly_return = (1 + rate / 100) ** (1 / 12) - 1
                 growth = balances[acct_id] * monthly_return
                 balances[acct_id] += growth
+                month_investment_growth += growth
             elif acct.type == "savings_hisa":
-                rate = acct.interest_rate if acct.interest_rate is not None else 0
+                if acct_id in contrib_return_overrides:
+                    rate = contrib_return_overrides[acct_id]
+                elif acct.interest_rate is not None:
+                    rate = acct.interest_rate
+                else:
+                    rate = 0
                 monthly_return = (1 + rate / 100) ** (1 / 12) - 1
-                balances[acct_id] += balances[acct_id] * monthly_return
+                growth = balances[acct_id] * monthly_return
+                balances[acct_id] += growth
+                month_investment_growth += growth
 
         # --- Real estate appreciation ---
         for acct_id, acct in account_map.items():
@@ -263,6 +286,7 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
         total_expenses += month_expenses
         total_tax += month_tax
         total_savings += month_savings_contrib
+        total_investment_growth += month_investment_growth
 
         months_data.append({
             "month": m,
@@ -273,6 +297,7 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
             "net_cash_flow": round(month_income - month_expenses - month_tax, 2),
             "savings_contributions": round(month_savings_contrib, 2),
             "debt_payments": round(month_debt_payment, 2),
+            "investment_growth": round(month_investment_growth, 2),
             "assets": round(assets, 2),
             "liabilities": round(liabilities, 2),
             "net_worth": round(net_worth, 2),
@@ -297,6 +322,7 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
             "total_expenses": round(total_expenses, 2),
             "total_tax": round(total_tax, 2),
             "total_savings": round(total_savings, 2),
+            "total_investment_growth": round(total_investment_growth, 2),
         },
     }
 
@@ -338,6 +364,7 @@ def rollup_forecast(forecast: dict, granularity: str) -> dict:
             "net_cash_flow": round(sum(m["net_cash_flow"] for m in chunk), 2),
             "savings_contributions": round(sum(m["savings_contributions"] for m in chunk), 2),
             "debt_payments": round(sum(m["debt_payments"] for m in chunk), 2),
+            "investment_growth": round(sum(m["investment_growth"] for m in chunk), 2),
             # End-of-period snapshot
             "assets": chunk[-1]["assets"],
             "liabilities": chunk[-1]["liabilities"],
