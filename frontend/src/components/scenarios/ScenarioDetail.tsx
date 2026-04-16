@@ -27,6 +27,11 @@ interface DebtAccount {
   extra_payment: number
 }
 
+interface CreditCardDebt {
+  id: number; account_id: number; balance: number; interest_rate: number
+  monthly_payment: number; start_month: number
+}
+
 interface SavingsContrib {
   id: number; account_id: number; amount: number; frequency: string
   start_month: number; end_month: number | null; expected_return_rate: number | null
@@ -44,6 +49,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
   const [expenses, setExpenses] = useState<RecurringExpense[]>([])
   const [events, setEvents] = useState<OneOffEvent[]>([])
   const [debts, setDebts] = useState<DebtAccount[]>([])
+  const [creditCards, setCreditCards] = useState<CreditCardDebt[]>([])
   const [savings, setSavings] = useState<SavingsContrib[]>([])
 
   const sid = scenarioId
@@ -59,6 +65,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
     api.get<RecurringExpense[]>(`/forecast/${sid}/expenses`).then(setExpenses)
     api.get<OneOffEvent[]>(`/forecast/${sid}/events`).then(setEvents)
     api.get<DebtAccount[]>(`/forecast/${sid}/debts`).then(setDebts)
+    api.get<CreditCardDebt[]>(`/forecast/${sid}/credit-cards`).then(setCreditCards)
     api.get<SavingsContrib[]>(`/forecast/${sid}/savings`).then(setSavings)
   }
 
@@ -68,7 +75,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
     { key: 'income', label: 'Income', count: incomes.length },
     { key: 'expenses', label: 'Expenses', count: expenses.length },
     { key: 'events', label: 'Events', count: events.length },
-    { key: 'debts', label: 'Debts', count: debts.length },
+    { key: 'debts', label: 'Debts', count: debts.length + creditCards.length },
     { key: 'savings', label: 'Savings & Investments', count: savings.length },
   ]
 
@@ -102,7 +109,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
       {tab === 'income' && <IncomeTab sid={sid} incomes={incomes} accounts={accounts} onRefresh={refresh} />}
       {tab === 'expenses' && <ExpenseTab sid={sid} expenses={expenses} accounts={accounts} onRefresh={refresh} />}
       {tab === 'events' && <EventTab sid={sid} events={events} accounts={accounts} onRefresh={refresh} />}
-      {tab === 'debts' && <DebtTab sid={sid} debts={debts} accounts={accounts} onRefresh={refresh} />}
+      {tab === 'debts' && <DebtTab sid={sid} debts={debts} creditCards={creditCards} accounts={accounts} onRefresh={refresh} />}
       {tab === 'savings' && <SavingsTab sid={sid} savings={savings} accounts={accounts} onRefresh={refresh} />}
     </div>
   )
@@ -231,9 +238,11 @@ function EventTab({ sid, events, accounts, onRefresh }: { sid: number; events: O
   )
 }
 
-function DebtTab({ sid, debts, accounts, onRefresh }: { sid: number; debts: DebtAccount[]; accounts: Account[]; onRefresh: () => void }) {
+function DebtTab({ sid, debts, creditCards, accounts, onRefresh }: { sid: number; debts: DebtAccount[]; creditCards: CreditCardDebt[]; accounts: Account[]; onRefresh: () => void }) {
   const [form, setForm] = useState({ account_id: '', principal: 0, interest_rate: 5, term_months: 60, amortization_months: 300, payment_frequency: 'monthly', extra_payment: 0 })
   const [adding, setAdding] = useState(false)
+  const [ccForm, setCcForm] = useState({ account_id: '', balance: 0, interest_rate: 19.99, monthly_payment: 0 })
+  const [addingCc, setAddingCc] = useState(false)
 
   const handleAdd = async () => {
     await api.post(`/forecast/${sid}/debts`, { ...form, account_id: Number(form.account_id) })
@@ -299,6 +308,71 @@ function DebtTab({ sid, debts, accounts, onRefresh }: { sid: number; debts: Debt
         }))}
         onDelete={async (id) => { await api.delete(`/forecast/${sid}/debts/${id}`); onRefresh() }}
       />
+
+      {/* ── Credit Cards ── */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-medium">Credit Cards</h3>
+            <p className="text-xs text-surface-500 mt-0.5">
+              Revolving balance — interest compounds monthly on the remaining balance, fixed payment applied each month.
+            </p>
+          </div>
+          <button onClick={() => setAddingCc(!addingCc)} className="btn-primary flex items-center gap-1.5 text-xs"><Plus size={12} /> Add credit card</button>
+        </div>
+        {addingCc && (
+          <div className="card mb-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-surface-400 mb-1">Credit card account</label>
+                <select value={ccForm.account_id} onChange={e => setCcForm({ ...ccForm, account_id: e.target.value })} className="input w-full">
+                  <option value="">Select account...</option>
+                  {accounts.filter(a => !a.is_asset).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-surface-400 mb-1">Current balance owed ($)</label>
+                <input type="number" value={ccForm.balance || ''} onChange={e => setCcForm({ ...ccForm, balance: Number(e.target.value) })} className="input w-full" placeholder="e.g. 3500" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-surface-400 mb-1">Annual interest rate (%) — typical 19.99%</label>
+                <input type="number" step="0.01" value={ccForm.interest_rate} onChange={e => setCcForm({ ...ccForm, interest_rate: Number(e.target.value) })} className="input w-full" placeholder="19.99" />
+              </div>
+              <div>
+                <label className="block text-xs text-surface-400 mb-1">Fixed monthly payment ($)</label>
+                <input type="number" value={ccForm.monthly_payment || ''} onChange={e => setCcForm({ ...ccForm, monthly_payment: Number(e.target.value) })} className="input w-full" placeholder="e.g. 200" />
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                await api.post(`/forecast/${sid}/credit-cards`, { ...ccForm, account_id: Number(ccForm.account_id) })
+                setAddingCc(false)
+                setCcForm({ account_id: '', balance: 0, interest_rate: 19.99, monthly_payment: 0 })
+                onRefresh()
+              }}
+              disabled={!ccForm.account_id || !ccForm.monthly_payment}
+              className="btn-primary w-full"
+            >
+              Save credit card
+            </button>
+          </div>
+        )}
+        <Table
+          headers={['Account', 'Balance', 'Rate', 'Monthly Payment', '']}
+          rows={creditCards.map(cc => ({
+            id: cc.id,
+            cells: [
+              accounts.find(a => a.id === cc.account_id)?.name || '—',
+              `$${cc.balance.toLocaleString()}`,
+              `${cc.interest_rate}%`,
+              `$${cc.monthly_payment.toLocaleString()}/mo`,
+            ],
+          }))}
+          onDelete={async (id) => { await api.delete(`/forecast/${sid}/credit-cards/${id}`); onRefresh() }}
+        />
+      </div>
     </div>
   )
 }

@@ -18,7 +18,7 @@ from backend.models.account import Account
 from backend.models.scenario import Scenario
 from backend.models.forecast import (
     ForecastAssumptions, IncomeStream, RecurringExpense,
-    OneOffEvent, DebtAccount, SavingsContribution,
+    OneOffEvent, DebtAccount, CreditCardDebt, SavingsContribution,
 )
 from backend.services.tax_engine import load_tax_config, calculate_annual_tax
 from backend.services.amortization import calculate_amortization
@@ -51,12 +51,16 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
     expenses = db.query(RecurringExpense).filter(RecurringExpense.scenario_id == scenario_id).all()
     events = db.query(OneOffEvent).filter(OneOffEvent.scenario_id == scenario_id).all()
     debts = db.query(DebtAccount).filter(DebtAccount.scenario_id == scenario_id).all()
+    credit_cards = db.query(CreditCardDebt).filter(CreditCardDebt.scenario_id == scenario_id).all()
     savings = db.query(SavingsContribution).filter(SavingsContribution.scenario_id == scenario_id).all()
 
     # Load all accounts as starting balances
     accounts = db.query(Account).all()
     balances = {a.id: a.current_balance for a in accounts}
     account_map = {a.id: a for a in accounts}
+
+    # Track revolving credit card balances independently
+    cc_balances = {cc.id: cc.balance for cc in credit_cards}
 
     # Load tax config
     tax_config = load_tax_config(assumptions.tax_config_year)
@@ -194,6 +198,22 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
                     # Update the debt account balance
                     if debt.account_id in balances:
                         balances[debt.account_id] = -entry["balance"]
+
+        # --- Credit card payments (revolving balance) ---
+        for cc in credit_cards:
+            if cc.start_month <= m and cc_balances[cc.id] > 0:
+                monthly_rate = (1 + cc.interest_rate / 100) ** (1 / 12) - 1
+                # Interest accrues on the outstanding balance
+                cc_balances[cc.id] *= (1 + monthly_rate)
+                # Apply payment (capped at remaining balance)
+                payment = min(cc.monthly_payment, cc_balances[cc.id])
+                cc_balances[cc.id] -= payment
+                cc_balances[cc.id] = max(cc_balances[cc.id], 0)
+                month_debt_payment += payment
+                month_expenses += payment
+                # Mirror to account balance (negative = owed)
+                if cc.account_id in balances:
+                    balances[cc.account_id] = -cc_balances[cc.id]
 
         # --- Savings contributions ---
         for contrib in savings:

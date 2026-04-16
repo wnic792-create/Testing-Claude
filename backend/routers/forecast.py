@@ -5,7 +5,7 @@ from typing import Optional
 from backend.database import get_db
 from backend.models.forecast import (
     ForecastAssumptions, IncomeStream, RecurringExpense,
-    OneOffEvent, DebtAccount, SavingsContribution,
+    OneOffEvent, DebtAccount, CreditCardDebt, SavingsContribution,
 )
 from backend.services.forecast_engine import run_forecast, rollup_forecast
 from backend.services.amortization import calculate_amortization
@@ -266,6 +266,39 @@ def delete_debt(scenario_id: int, debt_id: int, db: Session = Depends(get_db)):
     obj = db.query(DebtAccount).filter(DebtAccount.id == debt_id, DebtAccount.scenario_id == scenario_id).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Debt not found")
+    db.delete(obj)
+    db.commit()
+
+
+# --- Credit card debts CRUD ---
+
+class CreditCardDebtCreate(BaseModel):
+    account_id: int
+    balance: float
+    interest_rate: float
+    monthly_payment: float
+    start_month: int = 0
+
+
+@router.get("/{scenario_id}/credit-cards")
+def list_credit_cards(scenario_id: int, db: Session = Depends(get_db)):
+    return db.query(CreditCardDebt).filter(CreditCardDebt.scenario_id == scenario_id).all()
+
+
+@router.post("/{scenario_id}/credit-cards", status_code=201)
+def create_credit_card(scenario_id: int, data: CreditCardDebtCreate, db: Session = Depends(get_db)):
+    obj = CreditCardDebt(scenario_id=scenario_id, **data.model_dump())
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+@router.delete("/{scenario_id}/credit-cards/{cc_id}", status_code=204)
+def delete_credit_card(scenario_id: int, cc_id: int, db: Session = Depends(get_db)):
+    obj = db.query(CreditCardDebt).filter(CreditCardDebt.id == cc_id, CreditCardDebt.scenario_id == scenario_id).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Credit card debt not found")
     db.delete(obj)
     db.commit()
 

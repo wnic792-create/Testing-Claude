@@ -6,7 +6,7 @@ from backend.database import get_db
 from backend.models.scenario import Scenario, StressTestPreset
 from backend.models.forecast import (
     ForecastAssumptions, IncomeStream, RecurringExpense,
-    OneOffEvent, DebtAccount, SavingsContribution,
+    OneOffEvent, DebtAccount, CreditCardDebt, SavingsContribution,
 )
 
 router = APIRouter()
@@ -155,6 +155,14 @@ def clone_scenario(scenario_id: int, name: Optional[str] = None, db: Session = D
             start_month=debt.start_month, extra_payment=debt.extra_payment,
         )
         db.add(new_debt)
+
+    # Clone credit card debts
+    for cc in db.query(CreditCardDebt).filter(CreditCardDebt.scenario_id == scenario_id).all():
+        db.add(CreditCardDebt(
+            scenario_id=clone.id, account_id=cc.account_id, balance=cc.balance,
+            interest_rate=cc.interest_rate, monthly_payment=cc.monthly_payment,
+            start_month=cc.start_month,
+        ))
 
     # Clone savings contributions
     for contrib in db.query(SavingsContribution).filter(SavingsContribution.scenario_id == scenario_id).all():

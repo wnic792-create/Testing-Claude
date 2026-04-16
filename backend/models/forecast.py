@@ -76,6 +76,18 @@ class DebtAccount(Base):
     extra_payment = Column(Float, default=0.0)
 
 
+class CreditCardDebt(Base):
+    __tablename__ = "credit_card_debts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    scenario_id = Column(Integer, ForeignKey("scenarios.id"), nullable=False)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
+    balance = Column(Float, nullable=False)           # current outstanding balance
+    interest_rate = Column(Float, nullable=False)     # annual % (e.g. 19.99)
+    monthly_payment = Column(Float, nullable=False)   # fixed amount paid each month
+    start_month = Column(Integer, default=0)
+
+
 class SavingsContribution(Base):
     __tablename__ = "savings_contributions"
 
