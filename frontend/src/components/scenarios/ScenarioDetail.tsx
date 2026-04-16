@@ -247,19 +247,48 @@ function DebtTab({ sid, debts, accounts, onRefresh }: { sid: number; debts: Debt
         <button onClick={() => setAdding(!adding)} className="btn-primary flex items-center gap-1.5 text-xs"><Plus size={12} /> Add debt</button>
       </div>
       {adding && (
-        <div className="card mb-4 grid grid-cols-4 gap-2">
-          <select value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })} className="input">
-            <option value="">Select account...</option>{accounts.filter(a => !a.is_asset).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-          <input type="number" placeholder="Principal" value={form.principal || ''} onChange={e => setForm({ ...form, principal: Number(e.target.value) })} className="input" />
-          <input type="number" placeholder="Rate %" step="0.01" value={form.interest_rate} onChange={e => setForm({ ...form, interest_rate: Number(e.target.value) })} className="input" />
-          <input type="number" placeholder="Amort. months" value={form.amortization_months} onChange={e => setForm({ ...form, amortization_months: Number(e.target.value) })} className="input" />
-          <input type="number" placeholder="Term months" value={form.term_months} onChange={e => setForm({ ...form, term_months: Number(e.target.value) })} className="input" />
-          <select value={form.payment_frequency} onChange={e => setForm({ ...form, payment_frequency: e.target.value })} className="input">
-            <option value="monthly">Monthly</option><option value="biweekly">Biweekly</option><option value="accelerated_biweekly">Accelerated biweekly</option>
-          </select>
-          <input type="number" placeholder="Extra payment" value={form.extra_payment || ''} onChange={e => setForm({ ...form, extra_payment: Number(e.target.value) })} className="input" />
-          <button onClick={handleAdd} disabled={!form.account_id} className="btn-primary">Save</button>
+        <div className="card mb-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-surface-400 mb-1">Debt account</label>
+              <select value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })} className="input w-full">
+                <option value="">Select account...</option>{accounts.filter(a => !a.is_asset).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-surface-400 mb-1">Payment frequency</label>
+              <select value={form.payment_frequency} onChange={e => setForm({ ...form, payment_frequency: e.target.value })} className="input w-full">
+                <option value="monthly">Monthly</option>
+                <option value="biweekly">Biweekly</option>
+                <option value="accelerated_biweekly">Accelerated biweekly</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-surface-400 mb-1">Principal ($) — original loan amount</label>
+              <input type="number" value={form.principal || ''} onChange={e => setForm({ ...form, principal: Number(e.target.value) })} className="input w-full" placeholder="e.g. 250000" />
+            </div>
+            <div>
+              <label className="block text-xs text-surface-400 mb-1">Annual interest rate (%)</label>
+              <input type="number" step="0.01" value={form.interest_rate} onChange={e => setForm({ ...form, interest_rate: Number(e.target.value) })} className="input w-full" placeholder="e.g. 5.25" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-surface-400 mb-1">Amortization (months) — total payoff length</label>
+              <input type="number" value={form.amortization_months} onChange={e => setForm({ ...form, amortization_months: Number(e.target.value) })} className="input w-full" placeholder="e.g. 300 = 25 yrs" />
+            </div>
+            <div>
+              <label className="block text-xs text-surface-400 mb-1">Term (months) — until renewal</label>
+              <input type="number" value={form.term_months} onChange={e => setForm({ ...form, term_months: Number(e.target.value) })} className="input w-full" placeholder="e.g. 60 = 5 yrs" />
+            </div>
+            <div>
+              <label className="block text-xs text-surface-400 mb-1">Extra payment per period ($)</label>
+              <input type="number" value={form.extra_payment || ''} onChange={e => setForm({ ...form, extra_payment: Number(e.target.value) })} className="input w-full" placeholder="0" />
+            </div>
+          </div>
+          <button onClick={handleAdd} disabled={!form.account_id} className="btn-primary w-full">Save debt</button>
         </div>
       )}
       <Table
