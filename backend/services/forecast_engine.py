@@ -101,6 +101,17 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
         if contrib.expected_return_rate is not None:
             contrib_return_overrides[contrib.account_id] = contrib.expected_return_rate
 
+    # Compute actual current net worth from raw account balances (before forecast)
+    initial_assets = sum(
+        bal for aid, bal in balances.items()
+        if account_map.get(aid) and account_map[aid].is_asset
+    )
+    initial_liabilities = sum(
+        abs(bal) for aid, bal in balances.items()
+        if account_map.get(aid) and not account_map[aid].is_asset
+    )
+    initial_net_worth = round(initial_assets - initial_liabilities, 2)
+
     # Results
     months_data = []
     total_income = 0.0
@@ -356,8 +367,8 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
             "balances": {aid: round(bal, 2) for aid, bal in balances.items()},
         })
 
-    # Summary
-    starting_nw = months_data[0]["net_worth"] if months_data else 0
+    # Summary — starting NW is actual current balances, ending is after 60 months
+    starting_nw = initial_net_worth
     ending_nw = months_data[-1]["net_worth"] if months_data else 0
 
     return {
