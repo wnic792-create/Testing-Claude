@@ -6,7 +6,7 @@ import {
 } from 'recharts'
 import { TrendingUp, TrendingDown, Info } from 'lucide-react'
 import { api } from '../../api/client'
-import type { Scenario } from '../../api/types'
+import type { Scenario, Account } from '../../api/types'
 
 interface ForecastMonth {
   month: number
@@ -21,6 +21,7 @@ interface ForecastMonth {
   assets: number
   liabilities: number
   net_worth: number
+  balances: Record<string, number>
 }
 
 interface ForecastResult {
@@ -44,16 +45,24 @@ interface ForecastResult {
 type Granularity = 'monthly' | 'quarterly' | 'yearly'
 type ChartView = 'net_worth' | 'cash_flow' | 'investment_growth' | 'assets_liabilities'
 
+const INVESTMENT_ACCOUNT_TYPES = ['tfsa', 'rrsp', 'fhsa', 'non_registered', 'savings_hisa']
+
+const ACCT_COLORS = [
+  '#3b82f6', '#22c55e', '#f59e0b', '#a78bfa',
+  '#f97316', '#ec4899', '#06b6d4', '#84cc16',
+]
+
 const CHART_DESCRIPTIONS: Record<ChartView, string> = {
   net_worth: 'How your total net worth (assets minus debts) evolves over 5 years.',
   cash_flow: 'Monthly income vs. expenses (includes debt payments & taxes). Green = income, Red = outflow.',
-  investment_growth: 'Cumulative total of money you contributed (blue) vs. compound interest earned (green).',
+  investment_growth: 'Balance of each investment & savings account over 5 years. Stack height = total portfolio value.',
   assets_liabilities: 'Your total assets and total debts tracked separately over time.',
 }
 
 export default function ForecastPage() {
   const { i18n } = useTranslation()
   const [scenarios, setScenarios] = useState<Scenario[]>([])
+  const [accounts, setAccounts] = useState<Account[]>([])
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [forecasts, setForecasts] = useState<ForecastResult[]>([])
   const [granularity, setGranularity] = useState<Granularity>('monthly')
@@ -65,6 +74,7 @@ export default function ForecastPage() {
       setScenarios(s)
       if (s.length > 0) setSelectedIds([s[0].id])
     })
+    api.get<Account[]>('/accounts').then(setAccounts)
   }, [])
 
   useEffect(() => {
@@ -92,7 +102,15 @@ export default function ForecastPage() {
       style: 'currency', currency: 'CAD', maximumFractionDigits: 0,
     }).format(n)
 
-  // Build chart data with cumulative savings/growth
+  const primary = forecasts[0]
+
+  // Investment accounts that have non-zero balances in the primary forecast
+  const investAccounts = accounts.filter(a =>
+    INVESTMENT_ACCOUNT_TYPES.includes(a.type) &&
+    primary?.months.some(m => (m.balances?.[String(a.id)] ?? 0) > 0)
+  )
+
+  // Build chart data
   const cumulatives: Record<string, { savings: number; growth: number }> = {}
   const chartData = forecasts.length > 0
     ? forecasts[0].months.map((m, i) => {
@@ -113,13 +131,18 @@ export default function ForecastPage() {
           point[`${p}_cum_savings`] = Math.round(cumulatives[p].savings)
           point[`${p}_cum_growth`] = Math.round(cumulatives[p].growth)
         }
+        // Per-account balances (always from primary scenario)
+        const pfm = primary.months[i]
+        if (pfm) {
+          for (const acct of investAccounts) {
+            point[`acct_${acct.id}`] = Math.max(0, pfm.balances?.[String(acct.id)] ?? 0)
+          }
+        }
         return point
       })
     : []
 
-  const primary = forecasts[0]
-
-  // Build yearly rows with month counts for partial year labeling
+  // Build yearly rows
   const yearlyRows = (() => {
     if (!primary) return []
     const byYear: Record<string, {
@@ -140,7 +163,6 @@ export default function ForecastPage() {
     return Object.entries(byYear).map(([yr, v]) => ({ year: yr, ...v }))
   })()
 
-  // Totals for year-by-year table
   const yearlyTotals = yearlyRows.reduce(
     (acc, r) => ({
       income: acc.income + r.income,
@@ -152,8 +174,17 @@ export default function ForecastPage() {
     { income: 0, expenses: 0, tax: 0, savings: 0, debt_payments: 0 }
   )
 
-  const tooltipStyle = { backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: 6, fontSize: 12 }
+  // Portfolio breakdown: starting vs ending balance per investment account
+  const portfolioRows = investAccounts.map((acct, idx) => {
+    const firstMonth = primary?.months[0]
+    const lastMonth = primary?.months[primary.months.length - 1]
+    const startBal = firstMonth?.balances?.[String(acct.id)] ?? 0
+    const endBal = lastMonth?.balances?.[String(acct.id)] ?? 0
+    return { acct, startBal, endBal, color: ACCT_COLORS[idx % ACCT_COLORS.length] }
+  })
+  const portfolioTotal = { start: portfolioRows.reduce((s, r) => s + r.startBal, 0), end: portfolioRows.reduce((s, r) => s + r.endBal, 0) }
 
+  const tooltipStyle = { backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: 6, fontSize: 12 }
   const s = primary?.summary
 
   return (
@@ -166,13 +197,10 @@ export default function ForecastPage() {
         </div>
         <div className="flex items-center gap-1 bg-surface-800 rounded-lg p-1">
           {(['monthly', 'quarterly', 'yearly'] as Granularity[]).map(g => (
-            <button
-              key={g}
-              onClick={() => setGranularity(g)}
+            <button key={g} onClick={() => setGranularity(g)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
                 granularity === g ? 'bg-surface-600 text-white' : 'text-surface-400 hover:text-surface-200'
-              }`}
-            >
+              }`}>
               {g.charAt(0).toUpperCase() + g.slice(1)}
             </button>
           ))}
@@ -182,18 +210,15 @@ export default function ForecastPage() {
       {/* Scenario selector */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs text-surface-500">Scenarios:</span>
-        {scenarios.map(s => (
-          <button
-            key={s.id}
-            onClick={() => toggleScenario(s.id)}
+        {scenarios.map(sc => (
+          <button key={sc.id} onClick={() => toggleScenario(sc.id)}
             className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-md border transition-colors ${
-              selectedIds.includes(s.id)
+              selectedIds.includes(sc.id)
                 ? 'border-blue-500 bg-blue-500/10 text-blue-300'
                 : 'border-surface-600 text-surface-400 hover:border-surface-500'
-            }`}
-          >
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-            {s.name}
+            }`}>
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: sc.color }} />
+            {sc.name}
           </button>
         ))}
       </div>
@@ -212,11 +237,8 @@ export default function ForecastPage() {
         <>
           {/* Summary cards */}
           <div>
-            <p className="text-xs text-surface-500 uppercase tracking-wide mb-3">
-              5-Year Summary — {primary.scenario_name}
-            </p>
+            <p className="text-xs text-surface-500 uppercase tracking-wide mb-3">5-Year Summary — {primary.scenario_name}</p>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Net worth card */}
               <div className="card col-span-2 lg:col-span-1">
                 <p className="text-xs text-surface-400 uppercase mb-2">Net Worth</p>
                 <div className="flex items-end justify-between">
@@ -239,7 +261,6 @@ export default function ForecastPage() {
                 </div>
               </div>
 
-              {/* Income vs Expenses - with full breakdown */}
               <div className="card">
                 <p className="text-xs text-surface-400 uppercase mb-2">5-Year Income vs Outflows</p>
                 <div className="space-y-1.5">
@@ -270,7 +291,6 @@ export default function ForecastPage() {
                 </div>
               </div>
 
-              {/* Savings & Investment */}
               <div className="card">
                 <p className="text-xs text-surface-400 uppercase mb-2">Savings & Investment</p>
                 <div className="space-y-1.5">
@@ -283,7 +303,7 @@ export default function ForecastPage() {
                     <span className="font-mono text-green-400">+{fmtFull(s.total_investment_growth)}</span>
                   </div>
                   <div className="border-t border-surface-700 pt-1 flex justify-between text-xs font-semibold">
-                    <span className="text-surface-300">Total Value</span>
+                    <span className="text-surface-300">Total Portfolio Value</span>
                     <span className="font-mono text-surface-200">{fmtFull(s.total_savings + s.total_investment_growth)}</span>
                   </div>
                   {s.total_savings > 0 && (
@@ -306,15 +326,12 @@ export default function ForecastPage() {
                   ['investment_growth', 'Savings & Growth'],
                   ['assets_liabilities', 'Assets vs Debts'],
                 ] as [ChartView, string][]).map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => setChartView(key)}
+                  <button key={key} onClick={() => setChartView(key)}
                     className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
                       chartView === key
                         ? 'border-blue-500 bg-blue-500/10 text-blue-300'
                         : 'border-surface-700 text-surface-400 hover:text-surface-200 hover:border-surface-600'
-                    }`}
-                  >
+                    }`}>
                     {label}
                   </button>
                 ))}
@@ -358,23 +375,50 @@ export default function ForecastPage() {
                   ))}
                 </BarChart>
               ) : chartView === 'investment_growth' ? (
-                <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={fmt} width={70} />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [fmtFull(v), '']} />
-                  <Legend />
-                  {forecasts.map(f => (
-                    <Area key={`${f.scenario_id}_s`} type="monotone" dataKey={`${f.scenario_name}_cum_savings`}
-                      name={`${f.scenario_name} Contributed`} stroke="#3b82f6" fill="#3b82f6"
-                      fillOpacity={0.3} strokeWidth={2} stackId={`s_${f.scenario_id}`} dot={false} />
-                  ))}
-                  {forecasts.map(f => (
-                    <Area key={`${f.scenario_id}_g`} type="monotone" dataKey={`${f.scenario_name}_cum_growth`}
-                      name={`${f.scenario_name} Growth`} stroke="#22c55e" fill="#22c55e"
-                      fillOpacity={0.4} strokeWidth={2} stackId={`s_${f.scenario_id}`} dot={false} />
-                  ))}
-                </AreaChart>
+                investAccounts.length > 0 ? (
+                  <AreaChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={fmt} width={70} />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(v: number, name: string) => [fmtFull(v), name]}
+                    />
+                    <Legend />
+                    {investAccounts.map((acct, idx) => (
+                      <Area
+                        key={acct.id}
+                        type="monotone"
+                        dataKey={`acct_${acct.id}`}
+                        name={acct.name}
+                        stroke={ACCT_COLORS[idx % ACCT_COLORS.length]}
+                        fill={ACCT_COLORS[idx % ACCT_COLORS.length]}
+                        fillOpacity={0.45}
+                        strokeWidth={2}
+                        stackId="portfolio"
+                        dot={false}
+                      />
+                    ))}
+                  </AreaChart>
+                ) : (
+                  <AreaChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={fmt} width={70} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [fmtFull(v), '']} />
+                    <Legend />
+                    {forecasts.map(f => (
+                      <Area key={`${f.scenario_id}_s`} type="monotone" dataKey={`${f.scenario_name}_cum_savings`}
+                        name={`${f.scenario_name} Contributed`} stroke="#3b82f6" fill="#3b82f6"
+                        fillOpacity={0.3} strokeWidth={2} stackId={`s_${f.scenario_id}`} dot={false} />
+                    ))}
+                    {forecasts.map(f => (
+                      <Area key={`${f.scenario_id}_g`} type="monotone" dataKey={`${f.scenario_name}_cum_growth`}
+                        name={`${f.scenario_name} Growth`} stroke="#22c55e" fill="#22c55e"
+                        fillOpacity={0.4} strokeWidth={2} stackId={`s_${f.scenario_id}`} dot={false} />
+                    ))}
+                  </AreaChart>
+                )
               ) : (
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -393,6 +437,52 @@ export default function ForecastPage() {
                 </LineChart>
               )}
             </ResponsiveContainer>
+
+            {/* Per-account breakdown table — only shown for Savings & Growth */}
+            {chartView === 'investment_growth' && portfolioRows.length > 0 && (
+              <div className="mt-4 border-t border-surface-700 pt-4">
+                <p className="text-xs text-surface-400 uppercase tracking-wide mb-2">
+                  Portfolio Breakdown — {primary.scenario_name}
+                </p>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-surface-500 border-b border-surface-700">
+                      <th className="pb-2 font-medium">Account</th>
+                      <th className="pb-2 font-medium">Type</th>
+                      <th className="pb-2 font-medium text-right">Today</th>
+                      <th className="pb-2 font-medium text-right">In 5 Years</th>
+                      <th className="pb-2 font-medium text-right">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-surface-800">
+                    {portfolioRows.map(({ acct, startBal, endBal, color }) => (
+                      <tr key={acct.id} className="hover:bg-surface-800/40">
+                        <td className="py-2 flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
+                          <span className="font-medium text-surface-200">{acct.name}</span>
+                        </td>
+                        <td className="py-2 text-surface-500 uppercase">{acct.type.replace('_', ' ')}</td>
+                        <td className="py-2 text-right font-mono text-surface-300">{fmtFull(startBal)}</td>
+                        <td className="py-2 text-right font-mono font-semibold text-surface-100">{fmtFull(endBal)}</td>
+                        <td className={`py-2 text-right font-mono font-semibold ${endBal - startBal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {endBal - startBal >= 0 ? '+' : ''}{fmtFull(endBal - startBal)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-surface-600 font-semibold">
+                      <td className="py-2 text-surface-300" colSpan={2}>Total Portfolio</td>
+                      <td className="py-2 text-right font-mono text-surface-300">{fmtFull(portfolioTotal.start)}</td>
+                      <td className="py-2 text-right font-mono text-surface-100">{fmtFull(portfolioTotal.end)}</td>
+                      <td className={`py-2 text-right font-mono ${portfolioTotal.end - portfolioTotal.start >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {portfolioTotal.end - portfolioTotal.start >= 0 ? '+' : ''}{fmtFull(portfolioTotal.end - portfolioTotal.start)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Year-by-year breakdown table */}
