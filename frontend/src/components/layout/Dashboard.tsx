@@ -301,24 +301,6 @@ export default function Dashboard() {
     }).sort((a, b) => Math.abs(b.yoy) - Math.abs(a.yoy))
   }, [accounts, accountBalanceSeries])
 
-  // 12-month summary KPIs
-  const annualKPIs = useMemo(() => {
-    const len = accountBalanceSeries.length
-    if (len < 2) return null
-    const oldest = accountBalanceSeries[0]
-    const latest = accountBalanceSeries[len - 1]
-    const debtPaidOff = accounts
-      .filter(a => !a.is_asset)
-      .reduce((sum, a) => sum + (Number(latest[`a_${a.id}`] ?? 0) - Number(oldest[`a_${a.id}`] ?? 0)), 0)
-    const investGrowth = accounts
-      .filter(a => a.is_asset && ['tfsa', 'rrsp', 'fhsa', 'non_registered', 'crypto'].includes(a.type))
-      .reduce((sum, a) => sum + (Number(latest[`a_${a.id}`] ?? 0) - Number(oldest[`a_${a.id}`] ?? 0)), 0)
-    const avgMonthlySavings = len > 1
-      ? cashFlow12.reduce((s, m) => s + Math.max(0, m.net), 0) / cashFlow12.filter(m => m.income > 0).length
-      : 0
-    return { debtPaidOff, investGrowth, avgMonthlySavings }
-  }, [accounts, accountBalanceSeries, cashFlow12])
-
   // 12-month cash flow series
   const cashFlow12 = useMemo(() => {
     const buckets: Record<string, { month: string; ym: string; income: number; expenses: number; net: number }> = {}
@@ -337,6 +319,25 @@ export default function Dashboard() {
     for (const b of Object.values(buckets)) b.net = b.income - b.expenses
     return Object.values(buckets)
   }, [eligible, i18n.language])
+
+  // 12-month summary KPIs — must be after cashFlow12
+  const annualKPIs = useMemo(() => {
+    const len = accountBalanceSeries.length
+    if (len < 2) return null
+    const oldest = accountBalanceSeries[0]
+    const latest = accountBalanceSeries[len - 1]
+    const debtPaidOff = accounts
+      .filter(a => !a.is_asset)
+      .reduce((sum, a) => sum + (Number(latest[`a_${a.id}`] ?? 0) - Number(oldest[`a_${a.id}`] ?? 0)), 0)
+    const investGrowth = accounts
+      .filter(a => a.is_asset && ['tfsa', 'rrsp', 'fhsa', 'non_registered', 'crypto'].includes(a.type))
+      .reduce((sum, a) => sum + (Number(latest[`a_${a.id}`] ?? 0) - Number(oldest[`a_${a.id}`] ?? 0)), 0)
+    const activeMonths = cashFlow12.filter(m => m.income > 0).length
+    const avgMonthlySavings = activeMonths > 0
+      ? cashFlow12.reduce((s, m) => s + Math.max(0, m.net), 0) / activeMonths
+      : 0
+    return { debtPaidOff, investGrowth, avgMonthlySavings }
+  }, [accounts, accountBalanceSeries, cashFlow12])
 
   // Spending by category — selected period
   const spendByCategory = useMemo(() => {
