@@ -19,6 +19,7 @@ from backend.models.scenario import Scenario
 from backend.models.forecast import (
     ForecastAssumptions, IncomeStream, RecurringExpense,
     OneOffEvent, DebtAccount, CreditCardDebt, SavingsContribution,
+    EmployerRRSPMatch,
 )
 from backend.services.tax_engine import load_tax_config, calculate_annual_tax
 from backend.services.amortization import calculate_amortization
@@ -48,6 +49,7 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
         raise ValueError(f"No assumptions for scenario {scenario_id}")
 
     incomes = db.query(IncomeStream).filter(IncomeStream.scenario_id == scenario_id).all()
+    employer_rrsp = db.query(EmployerRRSPMatch).filter(EmployerRRSPMatch.scenario_id == scenario_id).all()
     expenses = db.query(RecurringExpense).filter(RecurringExpense.scenario_id == scenario_id).all()
     events = db.query(OneOffEvent).filter(OneOffEvent.scenario_id == scenario_id).all()
     debts = db.query(DebtAccount).filter(DebtAccount.scenario_id == scenario_id).all()
@@ -85,6 +87,11 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
     rrsp_room = assumptions.rrsp_room
     tfsa_room = assumptions.tfsa_room
     fhsa_room = assumptions.fhsa_room
+
+    # Build employer RRSP match lookup keyed by income_stream_id
+    employer_rrsp_by_income: dict[int, EmployerRRSPMatch] = {
+        m.income_stream_id: m for m in employer_rrsp
+    }
 
     # Build per-account return rate overrides from savings contributions.
     # If a contribution sets expected_return_rate, it takes priority over
@@ -148,10 +155,24 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
                 monthly_tax = tax_result["total_deductions"] / 12
                 net_monthly = amount - monthly_tax
 
+                # Employer RRSP match — employee portion deducted from take-home,
+                # employer portion is free. Both go to RRSP and consume room.
+                er_match = employer_rrsp_by_income.get(inc.id)
+                if er_match and er_match.start_month <= m and (er_match.end_month is None or m <= er_match.end_month):
+                    employee_rrsp = amount * er_match.employee_rate / 100
+                    employer_rrsp_contrib = amount * er_match.employer_match_rate / 100
+                    total_rrsp_contrib = employee_rrsp + employer_rrsp_contrib
+                    net_monthly -= employee_rrsp  # comes out of take-home pay
+                    if er_match.rrsp_account_id in balances:
+                        allowed = min(total_rrsp_contrib, max(0.0, rrsp_room))
+                        rrsp_room -= allowed
+                        balances[er_match.rrsp_account_id] += allowed
+                        month_savings_contrib += allowed
+
                 month_income += amount
                 month_tax += monthly_tax
 
-                # Deposit to account
+                # Deposit net (after tax and employee RRSP) to account
                 if inc.account_id and inc.account_id in balances:
                     balances[inc.account_id] += net_monthly
 

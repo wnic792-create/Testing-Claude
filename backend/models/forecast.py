@@ -88,6 +88,20 @@ class CreditCardDebt(Base):
     start_month = Column(Integer, default=0)
 
 
+class EmployerRRSPMatch(Base):
+    __tablename__ = "employer_rrsp_matches"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    scenario_id = Column(Integer, ForeignKey("scenarios.id"), nullable=False)
+    income_stream_id = Column(Integer, ForeignKey("income_streams.id"), nullable=False)
+    rrsp_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
+    label = Column(String, nullable=True)
+    employee_rate = Column(Float, nullable=False)   # % of gross pay deducted from take-home
+    employer_match_rate = Column(Float, nullable=False)  # % of gross pay added by employer (free)
+    start_month = Column(Integer, default=0)
+    end_month = Column(Integer, nullable=True)
+
+
 class SavingsContribution(Base):
     __tablename__ = "savings_contributions"
 

@@ -37,6 +37,17 @@ interface SavingsContrib {
   start_month: number; end_month: number | null; expected_return_rate: number | null
 }
 
+interface EmployerRRSPMatch {
+  id: number
+  income_stream_id: number
+  rrsp_account_id: number
+  label: string | null
+  employee_rate: number
+  employer_match_rate: number
+  start_month: number
+  end_month: number | null
+}
+
 type Tab = 'income' | 'expenses' | 'events' | 'debts' | 'savings'
 
 export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: number; onBack: () => void }) {
@@ -51,6 +62,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
   const [debts, setDebts] = useState<DebtAccount[]>([])
   const [creditCards, setCreditCards] = useState<CreditCardDebt[]>([])
   const [savings, setSavings] = useState<SavingsContrib[]>([])
+  const [employerRrsp, setEmployerRrsp] = useState<EmployerRRSPMatch[]>([])
 
   const sid = scenarioId
 
@@ -67,6 +79,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
     api.get<DebtAccount[]>(`/forecast/${sid}/debts`).then(setDebts)
     api.get<CreditCardDebt[]>(`/forecast/${sid}/credit-cards`).then(setCreditCards)
     api.get<SavingsContrib[]>(`/forecast/${sid}/savings`).then(setSavings)
+    api.get<EmployerRRSPMatch[]>(`/forecast/${sid}/employer-rrsp`).then(setEmployerRrsp)
   }
 
   const accountName = (id: number | null) => accounts.find(a => a.id === id)?.name || '—'
@@ -76,7 +89,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
     { key: 'expenses', label: 'Expenses', count: expenses.length },
     { key: 'events', label: 'Events', count: events.length },
     { key: 'debts', label: 'Debts', count: debts.length + creditCards.length },
-    { key: 'savings', label: 'Savings & Investments', count: savings.length },
+    { key: 'savings', label: 'Savings & Investments', count: savings.length + employerRrsp.length },
   ]
 
   return (
@@ -110,7 +123,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
       {tab === 'expenses' && <ExpenseTab sid={sid} expenses={expenses} accounts={accounts} onRefresh={refresh} />}
       {tab === 'events' && <EventTab sid={sid} events={events} accounts={accounts} onRefresh={refresh} />}
       {tab === 'debts' && <DebtTab sid={sid} debts={debts} creditCards={creditCards} accounts={accounts} onRefresh={refresh} />}
-      {tab === 'savings' && <SavingsTab sid={sid} savings={savings} accounts={accounts} onRefresh={refresh} />}
+      {tab === 'savings' && <SavingsTab sid={sid} savings={savings} employerRrsp={employerRrsp} incomes={incomes} accounts={accounts} onRefresh={refresh} />}
     </div>
   )
 }
@@ -377,7 +390,14 @@ function DebtTab({ sid, debts, creditCards, accounts, onRefresh }: { sid: number
   )
 }
 
-function SavingsTab({ sid, savings, accounts, onRefresh }: { sid: number; savings: SavingsContrib[]; accounts: Account[]; onRefresh: () => void }) {
+function SavingsTab({ sid, savings, employerRrsp, incomes, accounts, onRefresh }: {
+  sid: number
+  savings: SavingsContrib[]
+  employerRrsp: EmployerRRSPMatch[]
+  incomes: IncomeStream[]
+  accounts: Account[]
+  onRefresh: () => void
+}) {
   const [form, setForm] = useState({ account_id: '', amount: 0, frequency: 'monthly', start_month: 0, expected_return_rate: '' })
   const [adding, setAdding] = useState(false)
 
@@ -411,6 +431,44 @@ function SavingsTab({ sid, savings, accounts, onRefresh }: { sid: number; saving
   }
 
   const acctName = (id: number) => accounts.find(a => a.id === id)?.name || '—'
+  const incomeName = (id: number) => incomes.find(i => i.id === id)?.name || '—'
+
+  const [erForm, setErForm] = useState({
+    income_stream_id: '',
+    rrsp_account_id: '',
+    label: '',
+    employee_rate: 7,
+    employer_match_rate: 5,
+  })
+  const [addingEr, setAddingEr] = useState(false)
+
+  const handleAddEr = async () => {
+    await api.post(`/forecast/${sid}/employer-rrsp`, {
+      income_stream_id: Number(erForm.income_stream_id),
+      rrsp_account_id: Number(erForm.rrsp_account_id),
+      employee_rate: erForm.employee_rate,
+      employer_match_rate: erForm.employer_match_rate,
+      label: erForm.label || null,
+    })
+    setAddingEr(false)
+    setErForm({ income_stream_id: '', rrsp_account_id: '', label: '', employee_rate: 7, employer_match_rate: 5 })
+    onRefresh()
+  }
+
+  // Preview monthly amounts for the employer RRSP form
+  const erPreview = (() => {
+    if (!erForm.income_stream_id) return null
+    const inc = incomes.find(i => i.id === Number(erForm.income_stream_id))
+    if (!inc) return null
+    let monthly = inc.amount
+    if (inc.frequency === 'biweekly') monthly = inc.amount * 26 / 12
+    if (inc.frequency === 'annual') monthly = inc.amount / 12
+    const emp = monthly * erForm.employee_rate / 100
+    const er = monthly * erForm.employer_match_rate / 100
+    return { monthly, emp, er, total: emp + er }
+  })()
+
+  const rrspAccounts = accounts.filter(a => a.type === 'rrsp' || a.name?.toLowerCase().includes('rrsp'))
 
   return (
     <div>
@@ -493,6 +551,142 @@ function SavingsTab({ sid, savings, accounts, onRefresh }: { sid: number; saving
           </tbody>
         </table>
       )}
+
+      {/* ── Employer RRSP Match ── */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <h3 className="text-sm font-medium">Employer RRSP Match</h3>
+            <p className="text-xs text-surface-500 mt-0.5">
+              Employee contributions come out of your take-home pay. Employer match is free money. Both go into your RRSP and consume contribution room.
+            </p>
+          </div>
+          {incomes.length > 0 && (
+            <button onClick={() => setAddingEr(!addingEr)} className="btn-primary flex items-center gap-1.5 text-xs">
+              <Plus size={12} /> Add match
+            </button>
+          )}
+        </div>
+        {incomes.length === 0 && (
+          <p className="text-xs text-surface-500 italic mt-2">Add an income stream first before setting up an employer RRSP match.</p>
+        )}
+        {addingEr && (
+          <div className="card my-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-surface-400 mb-1">Income stream (your salary)</label>
+                <select value={erForm.income_stream_id} onChange={e => setErForm({ ...erForm, income_stream_id: e.target.value })} className="input w-full">
+                  <option value="">Select income stream...</option>
+                  {incomes.map(i => <option key={i.id} value={i.id}>{i.name} (${i.amount.toLocaleString()}/{i.frequency})</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-surface-400 mb-1">RRSP account to deposit into</label>
+                <select value={erForm.rrsp_account_id} onChange={e => setErForm({ ...erForm, rrsp_account_id: e.target.value })} className="input w-full">
+                  <option value="">Select RRSP account...</option>
+                  {accounts.filter(a => a.is_asset).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-surface-400 mb-1">Your contribution (% of gross pay)</label>
+                <div className="relative">
+                  <input type="number" step="0.5" min="0" max="100" value={erForm.employee_rate}
+                    onChange={e => setErForm({ ...erForm, employee_rate: Number(e.target.value) })}
+                    className="input w-full pr-8" placeholder="e.g. 7" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 text-xs">%</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-surface-400 mb-1">Employer match (% of gross pay)</label>
+                <div className="relative">
+                  <input type="number" step="0.5" min="0" max="100" value={erForm.employer_match_rate}
+                    onChange={e => setErForm({ ...erForm, employer_match_rate: Number(e.target.value) })}
+                    className="input w-full pr-8" placeholder="e.g. 5" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 text-xs">%</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-surface-400 mb-1">Label (optional)</label>
+              <input value={erForm.label} onChange={e => setErForm({ ...erForm, label: e.target.value })} className="input w-full" placeholder="e.g. Company Group RRSP" />
+            </div>
+            {/* Live preview */}
+            {erPreview && (
+              <div className="bg-surface-800 rounded-lg p-3 text-xs space-y-1">
+                <p className="text-surface-400 font-medium mb-1.5">Monthly breakdown preview</p>
+                <div className="flex justify-between">
+                  <span className="text-surface-400">Your gross income</span>
+                  <span className="font-mono text-surface-200">${Math.round(erPreview.monthly).toLocaleString()}/mo</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-surface-400">Your contribution ({erForm.employee_rate}%)</span>
+                  <span className="font-mono text-orange-400">−${Math.round(erPreview.emp).toLocaleString()}/mo from take-home</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-surface-400">Employer match ({erForm.employer_match_rate}%)</span>
+                  <span className="font-mono text-green-400">+${Math.round(erPreview.er).toLocaleString()}/mo free</span>
+                </div>
+                <div className="flex justify-between border-t border-surface-700 pt-1 font-semibold">
+                  <span className="text-surface-300">Total to RRSP</span>
+                  <span className="font-mono text-blue-400">${Math.round(erPreview.total).toLocaleString()}/mo</span>
+                </div>
+              </div>
+            )}
+            <button onClick={handleAddEr} disabled={!erForm.income_stream_id || !erForm.rrsp_account_id} className="btn-primary w-full">
+              Save employer RRSP match
+            </button>
+          </div>
+        )}
+
+        {employerRrsp.length === 0 ? (
+          <p className="text-surface-500 text-sm py-4">No employer RRSP matches yet.</p>
+        ) : (
+          <table className="w-full text-sm mt-2">
+            <thead><tr className="text-left text-xs text-surface-400 uppercase border-b border-surface-700">
+              <th className="px-3 py-2">Income stream</th>
+              <th className="px-3 py-2">RRSP account</th>
+              <th className="px-3 py-2 text-right">You contribute</th>
+              <th className="px-3 py-2 text-right">Employer adds</th>
+              <th className="px-3 py-2 text-right">Monthly total</th>
+              <th className="px-3 py-2"></th>
+            </tr></thead>
+            <tbody className="divide-y divide-surface-800">
+              {employerRrsp.map(er => {
+                const inc = incomes.find(i => i.id === er.income_stream_id)
+                let monthly = inc?.amount || 0
+                if (inc?.frequency === 'biweekly') monthly = monthly * 26 / 12
+                if (inc?.frequency === 'annual') monthly = monthly / 12
+                const emp = monthly * er.employee_rate / 100
+                const employer = monthly * er.employer_match_rate / 100
+                return (
+                  <tr key={er.id} className="hover:bg-surface-800/50">
+                    <td className="px-3 py-2 font-mono text-xs">{incomeName(er.income_stream_id)}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{acctName(er.rrsp_account_id)}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-right">
+                      <span className="text-orange-400">{er.employee_rate}%</span>
+                      <span className="text-surface-500 ml-1">(${Math.round(emp).toLocaleString()}/mo)</span>
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs text-right">
+                      <span className="text-green-400">{er.employer_match_rate}%</span>
+                      <span className="text-surface-500 ml-1">(${Math.round(employer).toLocaleString()}/mo)</span>
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs text-right text-blue-400 font-semibold">
+                      ${Math.round(emp + employer).toLocaleString()}/mo
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button onClick={async () => { await api.delete(`/forecast/${sid}/employer-rrsp/${er.id}`); onRefresh() }} className="text-surface-500 hover:text-red-400">
+                        <Trash2 size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
 }

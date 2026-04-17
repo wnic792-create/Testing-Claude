@@ -7,6 +7,7 @@ from backend.models.scenario import Scenario, StressTestPreset
 from backend.models.forecast import (
     ForecastAssumptions, IncomeStream, RecurringExpense,
     OneOffEvent, DebtAccount, CreditCardDebt, SavingsContribution,
+    EmployerRRSPMatch,
 )
 
 router = APIRouter()
@@ -78,7 +79,9 @@ def delete_scenario(scenario_id: int, db: Session = Depends(get_db)):
     db.query(RecurringExpense).filter(RecurringExpense.scenario_id == scenario_id).delete()
     db.query(OneOffEvent).filter(OneOffEvent.scenario_id == scenario_id).delete()
     db.query(DebtAccount).filter(DebtAccount.scenario_id == scenario_id).delete()
+    db.query(CreditCardDebt).filter(CreditCardDebt.scenario_id == scenario_id).delete()
     db.query(SavingsContribution).filter(SavingsContribution.scenario_id == scenario_id).delete()
+    db.query(EmployerRRSPMatch).filter(EmployerRRSPMatch.scenario_id == scenario_id).delete()
     db.delete(scenario)
     db.commit()
 
@@ -172,6 +175,15 @@ def clone_scenario(scenario_id: int, name: Optional[str] = None, db: Session = D
             end_month=contrib.end_month, expected_return_rate=contrib.expected_return_rate,
         )
         db.add(new_contrib)
+
+    # Clone employer RRSP matches
+    for er in db.query(EmployerRRSPMatch).filter(EmployerRRSPMatch.scenario_id == scenario_id).all():
+        db.add(EmployerRRSPMatch(
+            scenario_id=clone.id, income_stream_id=er.income_stream_id,
+            rrsp_account_id=er.rrsp_account_id, label=er.label,
+            employee_rate=er.employee_rate, employer_match_rate=er.employer_match_rate,
+            start_month=er.start_month, end_month=er.end_month,
+        ))
 
     db.commit()
     db.refresh(clone)
