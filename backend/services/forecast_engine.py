@@ -101,14 +101,19 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
     total_tax = 0.0
     total_savings = 0.0
     total_investment_growth = 0.0
+    total_debt_payments = 0.0
 
     # Compute starting date label
     import datetime
     start_date = datetime.date.today().replace(day=1)
+    start_year = start_date.year
+    start_month_num = start_date.month
 
     for m in range(HORIZON):
-        current_date = start_date + datetime.timedelta(days=32 * m)
-        current_date = current_date.replace(day=1)
+        total_months = start_month_num - 1 + m
+        year = start_year + total_months // 12
+        month_num = total_months % 12 + 1
+        current_date = datetime.date(year, month_num, 1)
         date_label = current_date.strftime("%Y-%m")
 
         month_income = 0.0
@@ -124,10 +129,11 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
                     continue
 
                 amount = inc.amount
-                # Apply growth rate
+                # Apply growth rate (annual step — salary increases once per year)
                 growth = inc.growth_rate if inc.growth_rate is not None else assumptions.salary_growth_rate
                 if m > 0 and inc.frequency != "one_time":
-                    amount *= (1 + growth / 100 / 12) ** m
+                    years_elapsed = m // 12
+                    amount *= (1 + growth / 100) ** years_elapsed
 
                 # Frequency adjustment
                 if inc.frequency == "annual":
@@ -284,9 +290,8 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
         # --- Refresh contribution room annually (at month 12, 24, etc.) ---
         if m > 0 and m % 12 == 0:
             limits = tax_config["contribution_limits"]
-            # RRSP room: 18% of previous year income, capped
-            annual_income = month_income * 12
-            new_rrsp = min(annual_income * limits["rrsp_rate"], limits["rrsp_max"])
+            past_year_income = sum(md["income"] for md in months_data[m - 12:m])
+            new_rrsp = min(past_year_income * limits["rrsp_rate"], limits["rrsp_max"])
             rrsp_room += new_rrsp
             tfsa_room += limits["tfsa_annual"]
             fhsa_room = min(fhsa_room + limits["fhsa_annual"], limits["fhsa_lifetime"])
@@ -307,6 +312,7 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
         total_tax += month_tax
         total_savings += month_savings_contrib
         total_investment_growth += month_investment_growth
+        total_debt_payments += month_debt_payment
 
         months_data.append({
             "month": m,
@@ -343,6 +349,7 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
             "total_tax": round(total_tax, 2),
             "total_savings": round(total_savings, 2),
             "total_investment_growth": round(total_investment_growth, 2),
+            "total_debt_payments": round(total_debt_payments, 2),
         },
     }
 
