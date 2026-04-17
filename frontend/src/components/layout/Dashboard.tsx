@@ -66,6 +66,7 @@ export default function Dashboard() {
   const [categories, setCategories] = useState<Category[]>([])
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [period, setPeriod] = useState<Period>('this_month')
+  const [acctFilter, setAcctFilter] = useState<'all' | 'liquid' | 'investments' | 'debts'>('all')
   // Tracks whether we've already auto-nudged the period once — so manual
   // selection isn't overridden by a later re-fetch.
   const [autoPicked, setAutoPicked] = useState(false)
@@ -233,6 +234,90 @@ export default function Dashboard() {
   }, [eligible])
 
   const runwayMonths = expense3moAvg > 0 ? liquidCash / expense3moAvg : 0
+
+  // Per-account 12-month balance history (reconstructed backwards from current balance)
+  const accountBalanceSeries = useMemo(() => {
+    if (!accounts.length || !transactions.length) return []
+    // monthEnds[0] = last day of current month, [12] = last day 12 months ago
+    const monthEnds: Date[] = []
+    for (let i = 0; i <= 12; i++) {
+      monthEnds.push(new Date(now.getFullYear(), now.getMonth() - i + 1, 0))
+    }
+    const seriesByAccount: Record<number, number[]> = {}
+    for (const acct of accounts) {
+      const acctTxs = transactions.filter(tx => tx.account_id === acct.id && !tx.is_split)
+      let running = acct.current_balance
+      const balances: number[] = []
+      for (let i = 0; i < monthEnds.length; i++) {
+        balances.push(running)
+        if (i < monthEnds.length - 1) {
+          const endIso = monthEnds[i].toISOString().slice(0, 10)
+          const prevIso = monthEnds[i + 1].toISOString().slice(0, 10)
+          for (const tx of acctTxs) {
+            if (tx.date > prevIso && tx.date <= endIso) running -= tx.amount
+          }
+        }
+      }
+      seriesByAccount[acct.id] = balances.reverse() // oldest → newest
+    }
+    return monthEnds.slice().reverse().map((d, idx) => {
+      const point: Record<string, string | number> = {
+        date: d.toLocaleDateString(i18n.language === 'fr' ? 'fr-CA' : 'en-CA', { month: 'short', year: '2-digit' }),
+      }
+      for (const acct of accounts) point[`a_${acct.id}`] = Math.round(seriesByAccount[acct.id]?.[idx] ?? 0)
+      return point
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts, transactions, now.toDateString(), i18n.language])
+
+  // Accounts visible in the chart based on type filter
+  const filteredAccounts = useMemo(() => {
+    switch (acctFilter) {
+      case 'liquid':      return accounts.filter(a => LIQUID_TYPES.has(a.type))
+      case 'investments': return accounts.filter(a => ['tfsa', 'rrsp', 'fhsa', 'non_registered', 'crypto'].includes(a.type))
+      case 'debts':       return accounts.filter(a => !a.is_asset)
+      default:            return accounts
+    }
+  }, [accounts, acctFilter])
+
+  // Month-over-month balance changes per account
+  const acctChanges = useMemo(() => {
+    const len = accountBalanceSeries.length
+    if (len < 2) return []
+    const latest   = accountBalanceSeries[len - 1]
+    const prev1    = accountBalanceSeries[len - 2] ?? {}
+    const prev3    = accountBalanceSeries[Math.max(len - 4, 0)] ?? {}
+    const oldest   = accountBalanceSeries[0] ?? {}
+    return accounts.map(acct => {
+      const k       = `a_${acct.id}`
+      const current = Number(latest[k] ?? 0)
+      return {
+        acct,
+        current,
+        mom:  current - Number(prev1[k] ?? 0),
+        qtr:  current - Number(prev3[k] ?? 0),
+        yoy:  current - Number(oldest[k] ?? 0),
+      }
+    }).sort((a, b) => Math.abs(b.yoy) - Math.abs(a.yoy))
+  }, [accounts, accountBalanceSeries])
+
+  // 12-month summary KPIs
+  const annualKPIs = useMemo(() => {
+    const len = accountBalanceSeries.length
+    if (len < 2) return null
+    const oldest = accountBalanceSeries[0]
+    const latest = accountBalanceSeries[len - 1]
+    const debtPaidOff = accounts
+      .filter(a => !a.is_asset)
+      .reduce((sum, a) => sum + (Number(latest[`a_${a.id}`] ?? 0) - Number(oldest[`a_${a.id}`] ?? 0)), 0)
+    const investGrowth = accounts
+      .filter(a => a.is_asset && ['tfsa', 'rrsp', 'fhsa', 'non_registered', 'crypto'].includes(a.type))
+      .reduce((sum, a) => sum + (Number(latest[`a_${a.id}`] ?? 0) - Number(oldest[`a_${a.id}`] ?? 0)), 0)
+    const avgMonthlySavings = len > 1
+      ? cashFlow12.reduce((s, m) => s + Math.max(0, m.net), 0) / cashFlow12.filter(m => m.income > 0).length
+      : 0
+    return { debtPaidOff, investGrowth, avgMonthlySavings }
+  }, [accounts, accountBalanceSeries, cashFlow12])
 
   // 12-month cash flow series
   const cashFlow12 = useMemo(() => {
@@ -729,6 +814,122 @@ export default function Dashboard() {
           <p className="text-surface-500 text-sm">No accounts yet.</p>
         )}
       </div>
+
+      {/* ── Account Balance History ─────────────────────────────────── */}
+      {accountBalanceSeries.length >= 2 && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-surface-400 uppercase tracking-wide">Account balance history · 12 months</p>
+            {/* Filter tabs */}
+            <div className="flex gap-1">
+              {(['all', 'liquid', 'investments', 'debts'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setAcctFilter(f)}
+                  className={`px-2.5 py-1 text-[11px] rounded transition-colors ${
+                    acctFilter === f
+                      ? 'bg-surface-600 text-white'
+                      : 'text-surface-400 hover:text-surface-200'
+                  }`}
+                >
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 12-month summary pills */}
+          {annualKPIs && (
+            <div className="flex gap-3 mb-3 flex-wrap">
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs ${annualKPIs.debtPaidOff >= 0 ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
+                <TrendingDown size={11} />
+                <span className="text-surface-400 mr-0.5">Debt 12mo:</span>
+                {annualKPIs.debtPaidOff >= 0 ? `−${fmt(annualKPIs.debtPaidOff)} paid off` : `+${fmt(Math.abs(annualKPIs.debtPaidOff))} added`}
+              </div>
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs ${annualKPIs.investGrowth >= 0 ? 'bg-blue-900/30 text-blue-400' : 'bg-red-900/30 text-red-400'}`}>
+                <TrendingUp size={11} />
+                <span className="text-surface-400 mr-0.5">Investments 12mo:</span>
+                {annualKPIs.investGrowth >= 0 ? '+' : ''}{fmt(annualKPIs.investGrowth)}
+              </div>
+              {annualKPIs.avgMonthlySavings > 0 && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-700/50 text-xs text-surface-300">
+                  <Percent size={11} />
+                  <span className="text-surface-400 mr-0.5">Avg monthly surplus:</span>
+                  {fmt(annualKPIs.avgMonthlySavings)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Line chart */}
+          <div style={{ height: 220 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={accountBalanceSeries} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 10 }} />
+                <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} tickFormatter={v => fmtCompact(v)} width={70} />
+                <Tooltip
+                  contentStyle={{ background: '#1e293b', border: '1px solid #334155', fontSize: 12 }}
+                  formatter={(v: number, name: string) => [fmt(v), name]}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                {filteredAccounts.map((a, i) => (
+                  <Line
+                    key={a.id}
+                    type="monotone"
+                    dataKey={`a_${a.id}`}
+                    name={a.name}
+                    stroke={COLORS[i % COLORS.length]}
+                    strokeWidth={2}
+                    dot={false}
+                    strokeDasharray={!a.is_asset ? '4 2' : undefined}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Month-over-month change table */}
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-surface-500 border-b border-surface-700">
+                  <th className="pb-2 font-medium">Account</th>
+                  <th className="pb-2 font-medium text-right">Balance</th>
+                  <th className="pb-2 font-medium text-right">vs Last Month</th>
+                  <th className="pb-2 font-medium text-right">vs 3 Months</th>
+                  <th className="pb-2 font-medium text-right">12-Month Change</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-800">
+                {acctChanges.filter(r =>
+                  acctFilter === 'all' ? true :
+                  acctFilter === 'liquid' ? LIQUID_TYPES.has(r.acct.type) :
+                  acctFilter === 'investments' ? ['tfsa', 'rrsp', 'fhsa', 'non_registered', 'crypto'].includes(r.acct.type) :
+                  !r.acct.is_asset
+                ).map(({ acct, current, mom, qtr, yoy }) => (
+                  <tr key={acct.id} className="hover:bg-surface-800/40">
+                    <td className="py-2">
+                      <p className="font-medium text-surface-200">{acct.name}</p>
+                      <p className="text-[10px] text-surface-500 uppercase">{acct.type.replace(/_/g, ' ')}</p>
+                    </td>
+                    <td className="py-2 text-right font-mono font-semibold text-surface-100">{fmt(current)}</td>
+                    <td className={`py-2 text-right font-mono ${mom === 0 ? 'text-surface-500' : mom > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {mom === 0 ? '—' : `${mom > 0 ? '+' : ''}${fmt(mom)}`}
+                    </td>
+                    <td className={`py-2 text-right font-mono ${qtr === 0 ? 'text-surface-500' : qtr > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {qtr === 0 ? '—' : `${qtr > 0 ? '+' : ''}${fmt(qtr)}`}
+                    </td>
+                    <td className={`py-2 text-right font-mono font-semibold ${yoy === 0 ? 'text-surface-500' : yoy > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {yoy === 0 ? '—' : `${yoy > 0 ? '+' : ''}${fmt(yoy)}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
