@@ -157,6 +157,8 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
 
                 # Employer RRSP match — employee portion deducted from take-home,
                 # employer portion is free. Both go to RRSP and consume room.
+                # Room is only enforced when the user has explicitly set rrsp_room > 0
+                # in assumptions; otherwise assume sufficient room is available.
                 er_match = employer_rrsp_by_income.get(inc.id)
                 if er_match and er_match.start_month <= m and (er_match.end_month is None or m <= er_match.end_month):
                     employee_rrsp = amount * er_match.employee_rate / 100
@@ -164,8 +166,11 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
                     total_rrsp_contrib = employee_rrsp + employer_rrsp_contrib
                     net_monthly -= employee_rrsp  # comes out of take-home pay
                     if er_match.rrsp_account_id in balances:
-                        allowed = min(total_rrsp_contrib, max(0.0, rrsp_room))
-                        rrsp_room -= allowed
+                        if rrsp_room > 0:
+                            allowed = min(total_rrsp_contrib, rrsp_room)
+                            rrsp_room -= allowed
+                        else:
+                            allowed = total_rrsp_contrib  # no room cap set — allow full contribution
                         balances[er_match.rrsp_account_id] += allowed
                         month_savings_contrib += allowed
 
