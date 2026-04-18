@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Plus, Trash2, Target, CheckCircle } from 'lucide-react'
+import {
+  AreaChart, Area, LineChart, Line,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid, Legend,
+} from 'recharts'
 import { api } from '../../api/client'
 import type { Scenario, Account } from '../../api/types'
 
@@ -718,6 +722,7 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
   const [retireAge, setRetireAge] = useState(65)
   const [replacementPct, setReplacementPct] = useState(70)
   const [swr, setSwr] = useState(4.0)
+  const [extraMonthly, setExtraMonthly] = useState(0)
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(n)
@@ -779,6 +784,33 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
   const addlNeeded = gap > 0 && n > 0 && rM > 0
     ? gap * rM / (Math.pow(1 + rM, n) - 1)
     : Math.max(0, gap / Math.max(n, 1))
+
+  // ── Year-by-year projection ───────────────────────────────────────────────
+  // Show portfolio growth to age 90 (or retireAge + 25, whichever is greater) so the
+  // post-retirement drawdown phase is also visible when the portfolio is overfunded.
+  const chartHorizon = Math.max(retireAge + 25, 90)
+  const projectionData = Array.from({ length: chartHorizon - currentAge + 1 }, (_, i) => {
+    const nM = i * 12
+    const fv1 = portfolio * Math.pow(1 + rM, nM)
+    const fv2 = nM > 0 && rM > 0 ? totalSavings * (Math.pow(1 + rM, nM) - 1) / rM : totalSavings * nM
+    const fvBase = Math.round(fv1 + fv2)
+    const fvExtraOnly = extraMonthly > 0 && nM > 0 && rM > 0
+      ? Math.round(extraMonthly * (Math.pow(1 + rM, nM) - 1) / rM)
+      : extraMonthly * nM
+    return {
+      age: currentAge + i,
+      portfolio: fvBase,
+      withExtra: extraMonthly > 0 ? fvBase + fvExtraOnly : undefined,
+      target: Math.round(nestEgg),
+    }
+  })
+
+  // Age at which current savings trajectory first crosses the nest egg target
+  const readyAtAge = projectionData.find(d => d.portfolio >= nestEgg)?.age ?? null
+  // Age at which enhanced trajectory crosses (if extra savings entered)
+  const readyAtAgeExtra = extraMonthly > 0
+    ? projectionData.find(d => (d.withExtra ?? 0) >= nestEgg)?.age ?? null
+    : null
 
   // ── Sensitivity ──────────────────────────────────────────────────────────
   const sensAges = [-10, -5, 0, 5, 10]
@@ -1018,6 +1050,129 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
           </div>
         </div>
       )}
+
+      {/* ── Portfolio Projection Chart ──────────────────────────────────── */}
+      <div className="card p-5">
+        <div className="flex items-start justify-between mb-4 gap-4">
+          <div>
+            <p className="text-xs font-semibold text-surface-400 uppercase tracking-widest">Portfolio Growth Projection</p>
+            <p className="text-[11px] text-surface-500 mt-1">
+              Year-by-year portfolio value from today to age {chartHorizon}.
+              {readyAtAge
+                ? readyAtAge <= retireAge
+                  ? ` At current savings you reach your target at age ${readyAtAge} — ${retireAge - readyAtAge} years ahead of plan.`
+                  : ` At current savings you reach your target at age ${readyAtAge}, ${readyAtAge - retireAge} years after your goal.`
+                : ' Your portfolio does not reach the target within this timeframe at current savings.'}
+            </p>
+          </div>
+          {/* What-if calculator */}
+          <div className="shrink-0 flex items-center gap-2 bg-surface-800 rounded-lg px-3 py-2">
+            <span className="text-xs text-surface-400 whitespace-nowrap">What if I save</span>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-surface-400 text-xs">$</span>
+              <input
+                type="number"
+                min={0}
+                step={50}
+                value={extraMonthly || ''}
+                onChange={e => setExtraMonthly(Math.max(0, Number(e.target.value)))}
+                placeholder="0"
+                className="input pl-5 pr-2 py-1 text-xs w-24 text-right"
+              />
+            </div>
+            <span className="text-xs text-surface-400 whitespace-nowrap">/mo more?</span>
+            {extraMonthly > 0 && (
+              <button onClick={() => setExtraMonthly(0)} className="text-surface-500 hover:text-surface-200 text-xs ml-1">✕</button>
+            )}
+          </div>
+        </div>
+
+        {/* Extra-savings callout */}
+        {extraMonthly > 0 && readyAtAgeExtra != null && (
+          <div className={`mb-4 px-3 py-2 rounded-lg text-xs flex items-center gap-2 ${
+            readyAtAgeExtra < (readyAtAge ?? retireAge + 99)
+              ? 'bg-green-900/20 text-green-400 border border-green-800/40'
+              : 'bg-surface-700/50 text-surface-300'
+          }`}>
+            <CheckCircle size={13} />
+            {readyAtAgeExtra <= retireAge
+              ? `+${fmt(extraMonthly)}/mo → you'd be retirement-ready at age ${readyAtAgeExtra}${readyAtAge && readyAtAge > retireAge ? `, closing your ${readyAtAge - retireAge}-year gap` : ''}.`
+              : `+${fmt(extraMonthly)}/mo → retirement-ready at ${readyAtAgeExtra} (${readyAtAgeExtra - retireAge} years after goal).`
+            }
+          </div>
+        )}
+
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={projectionData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.03} />
+              </linearGradient>
+              <linearGradient id="extraGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#22c55e" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+            <XAxis
+              dataKey="age"
+              stroke="#94a3b8"
+              tick={{ fontSize: 11 }}
+              label={{ value: 'Age', position: 'insideBottom', offset: -2, fill: '#94a3b8', fontSize: 10 }}
+            />
+            <YAxis
+              stroke="#94a3b8"
+              tick={{ fontSize: 11 }}
+              tickFormatter={v => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v}`}
+              width={72}
+            />
+            <Tooltip
+              contentStyle={{ background: '#1e293b', border: '1px solid #334155', fontSize: 12 }}
+              formatter={(v: number, name: string) => [fmt(v), name]}
+              labelFormatter={v => `Age ${v}`}
+            />
+            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+            {/* Target nest egg horizontal reference line */}
+            <ReferenceLine
+              y={nestEgg}
+              stroke="#f59e0b"
+              strokeDasharray="6 3"
+              strokeWidth={1.5}
+              label={{ value: `Target ${fmtBig(nestEgg)}`, position: 'insideTopRight', fill: '#f59e0b', fontSize: 10 }}
+            />
+            {/* Retirement age vertical line */}
+            <ReferenceLine
+              x={retireAge}
+              stroke="#6366f1"
+              strokeDasharray="4 2"
+              label={{ value: `Retire ${retireAge}`, position: 'top', fill: '#818cf8', fontSize: 10 }}
+            />
+            {/* Current trajectory */}
+            <Area
+              type="monotone"
+              dataKey="portfolio"
+              name="Current trajectory"
+              stroke="#3b82f6"
+              fill="url(#portfolioGrad)"
+              strokeWidth={2}
+              dot={false}
+            />
+            {/* Enhanced trajectory (only when extraMonthly > 0) */}
+            {extraMonthly > 0 && (
+              <Area
+                type="monotone"
+                dataKey="withExtra"
+                name={`+${fmt(extraMonthly)}/mo`}
+                stroke="#22c55e"
+                fill="url(#extraGrad)"
+                strokeWidth={2}
+                dot={false}
+              />
+            )}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
 
       {/* ── Sensitivity table ───────────────────────────────────────────── */}
       <div>
