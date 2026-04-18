@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Target, CheckCircle } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Scenario, Account } from '../../api/types'
 
@@ -48,7 +48,16 @@ interface EmployerRRSPMatch {
   end_month: number | null
 }
 
-type Tab = 'income' | 'expenses' | 'events' | 'debts' | 'savings'
+interface Assumptions {
+  inflation_rate: number
+  salary_growth_rate: number
+  investment_return_rate: number
+  rrsp_room: number
+  tfsa_room: number
+  fhsa_room: number
+}
+
+type Tab = 'income' | 'expenses' | 'events' | 'debts' | 'savings' | 'retirement'
 
 export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: number; onBack: () => void }) {
   const { t } = useTranslation()
@@ -63,12 +72,14 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
   const [creditCards, setCreditCards] = useState<CreditCardDebt[]>([])
   const [savings, setSavings] = useState<SavingsContrib[]>([])
   const [employerRrsp, setEmployerRrsp] = useState<EmployerRRSPMatch[]>([])
+  const [assumptions, setAssumptions] = useState<Assumptions | null>(null)
 
   const sid = scenarioId
 
   useEffect(() => {
     api.get<Scenario>(`/scenarios/${sid}`).then(setScenario)
     api.get<Account[]>('/accounts').then(setAccounts)
+    api.get<Assumptions>(`/forecast/${sid}/assumptions`).then(setAssumptions).catch(() => null)
     refresh()
   }, [sid])
 
@@ -84,12 +95,13 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
 
   const accountName = (id: number | null) => accounts.find(a => a.id === id)?.name || '—'
 
-  const tabs: { key: Tab; label: string; count: number }[] = [
+  const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'income', label: 'Income', count: incomes.length },
     { key: 'expenses', label: 'Expenses', count: expenses.length },
     { key: 'events', label: 'Events', count: events.length },
     { key: 'debts', label: 'Debts', count: debts.length + creditCards.length },
     { key: 'savings', label: 'Savings & Investments', count: savings.length + employerRrsp.length },
+    { key: 'retirement', label: 'Retirement Planner' },
   ]
 
   return (
@@ -114,7 +126,8 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
               tab === tb.key ? 'border-blue-500 text-blue-400' : 'border-transparent text-surface-400 hover:text-surface-200'
             }`}
           >
-            {tb.label} <span className="text-xs text-surface-500 ml-1">({tb.count})</span>
+            {tb.label}
+            {tb.count !== undefined && <span className="text-xs text-surface-500 ml-1">({tb.count})</span>}
           </button>
         ))}
       </div>
@@ -124,6 +137,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
       {tab === 'events' && <EventTab sid={sid} events={events} accounts={accounts} onRefresh={refresh} />}
       {tab === 'debts' && <DebtTab sid={sid} debts={debts} creditCards={creditCards} accounts={accounts} onRefresh={refresh} />}
       {tab === 'savings' && <SavingsTab sid={sid} savings={savings} employerRrsp={employerRrsp} incomes={incomes} accounts={accounts} onRefresh={refresh} />}
+      {tab === 'retirement' && <RetirementTab incomes={incomes} accounts={accounts} savings={savings} employerRrsp={employerRrsp} assumptions={assumptions} />}
     </div>
   )
 }
@@ -690,6 +704,374 @@ function SavingsTab({ sid, savings, employerRrsp, incomes, accounts, onRefresh }
     </div>
   )
 }
+
+// ─── Retirement Planner ───────────────────────────────────────────────────────
+
+function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }: {
+  incomes: IncomeStream[]
+  accounts: Account[]
+  savings: SavingsContrib[]
+  employerRrsp: EmployerRRSPMatch[]
+  assumptions: Assumptions | null
+}) {
+  const [currentAge, setCurrentAge] = useState(30)
+  const [retireAge, setRetireAge] = useState(65)
+  const [replacementPct, setReplacementPct] = useState(70)
+  const [swr, setSwr] = useState(4.0)
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(n)
+  const fmtBig = (n: number) => {
+    const a = Math.abs(n)
+    return a >= 1e6 ? `$${(a / 1e6).toFixed(2)}M` : a >= 1e3 ? `$${(a / 1e3).toFixed(0)}K` : `$${Math.round(a)}`
+  }
+
+  const INVEST = ['tfsa', 'rrsp', 'fhsa', 'non_registered', 'savings_hisa', 'crypto']
+  const toMonthly = (inc: IncomeStream) => {
+    if (inc.frequency === 'biweekly') return inc.amount * 26 / 12
+    if (inc.frequency === 'annual') return inc.amount / 12
+    return inc.amount
+  }
+
+  // ── Scenario-derived inputs ──────────────────────────────────────────────
+  const primaryIncome = incomes
+    .filter(i => i.frequency !== 'one_time')
+    .sort((a, b) => toMonthly(b) - toMonthly(a))[0]
+
+  const growthRate = (primaryIncome?.growth_rate ?? assumptions?.salary_growth_rate ?? 3) / 100
+  const returnRate = (assumptions?.investment_return_rate ?? 6) / 100
+  const rM = returnRate / 12
+
+  const yrs = Math.max(0, retireAge - currentAge)
+  const n = yrs * 12
+  const baseMonthly = primaryIncome ? toMonthly(primaryIncome) : 0
+
+  // ── Projections ──────────────────────────────────────────────────────────
+  const forecastedAnnual = baseMonthly * Math.pow(1 + growthRate, yrs) * 12
+  const targetAnnual = forecastedAnnual * (replacementPct / 100)
+  const nestEgg = swr > 0 ? targetAnnual / (swr / 100) : 0
+
+  const portfolio = accounts
+    .filter(a => a.is_asset && INVEST.includes(a.type))
+    .reduce((s, a) => s + a.current_balance, 0)
+
+  const savingsMonthly = savings.reduce((s, c) => {
+    if (c.frequency === 'monthly') return s + c.amount
+    if (c.frequency === 'annual') return s + c.amount / 12
+    if (c.frequency === 'biweekly') return s + c.amount * 26 / 12
+    return s
+  }, 0)
+
+  const erMonthly = employerRrsp.reduce((s, er) => {
+    const inc = incomes.find(i => i.id === er.income_stream_id)
+    return inc ? s + toMonthly(inc) * (er.employee_rate + er.employer_match_rate) / 100 : s
+  }, 0)
+
+  const totalSavings = savingsMonthly + erMonthly
+  const fvPortfolio = portfolio * Math.pow(1 + rM, n)
+  const fvContribs = n > 0 && rM > 0
+    ? totalSavings * (Math.pow(1 + rM, n) - 1) / rM
+    : totalSavings * n
+  const projected = fvPortfolio + fvContribs
+
+  const fundedPct = nestEgg > 0 ? (projected / nestEgg) * 100 : 0
+  const gap = nestEgg - projected
+  const addlNeeded = gap > 0 && n > 0 && rM > 0
+    ? gap * rM / (Math.pow(1 + rM, n) - 1)
+    : Math.max(0, gap / Math.max(n, 1))
+
+  // ── Sensitivity ──────────────────────────────────────────────────────────
+  const sensAges = [-10, -5, 0, 5, 10]
+    .map(d => retireAge + d)
+    .filter(a => a > currentAge + 1 && a <= 85)
+
+  const calcAge = (age: number) => {
+    const y2 = Math.max(0, age - currentAge)
+    const n2 = y2 * 12
+    const fv1 = portfolio * Math.pow(1 + rM, n2)
+    const fv2 = n2 > 0 && rM > 0 ? totalSavings * (Math.pow(1 + rM, n2) - 1) / rM : totalSavings * n2
+    const p2 = fv1 + fv2
+    const tgt = baseMonthly * Math.pow(1 + growthRate, y2) * 12 * (replacementPct / 100)
+    const egg2 = swr > 0 ? tgt / (swr / 100) : 0
+    const f2 = egg2 > 0 ? (p2 / egg2) * 100 : 0
+    const g2 = egg2 - p2
+    const add2 = g2 > 0 && n2 > 0 && rM > 0 ? g2 * rM / (Math.pow(1 + rM, n2) - 1) : 0
+    return { proj: p2, egg: egg2, funded: f2, additional: Math.max(0, add2), targetAnnual: tgt }
+  }
+
+  // ── Contextual tips ───────────────────────────────────────────────────────
+  const tips: { type: 'good' | 'warn' | 'info'; title: string; body: string }[] = []
+
+  if (fundedPct >= 100) {
+    const sustainYears = Math.round(projected / targetAnnual)
+    tips.push({ type: 'good', title: "You're on track!", body: `Your projected portfolio could sustain ${sustainYears} years of retirement income at your ${replacementPct}% target. You may be able to retire earlier or increase your target spending.` })
+  } else if (addlNeeded > 0) {
+    tips.push({ type: 'warn', title: `Save an additional ${fmt(addlNeeded)}/month to close the gap`, body: `You have a ${fmtBig(gap)} funding shortfall. Adding ${fmt(addlNeeded)}/mo now compounds over ${yrs} years and closes the gap by age ${retireAge}.` })
+  }
+
+  const erFree = employerRrsp.reduce((s, er) => {
+    const inc = incomes.find(i => i.id === er.income_stream_id)
+    return inc ? s + toMonthly(inc) * er.employer_match_rate / 100 : s
+  }, 0)
+  if (erFree > 0) {
+    tips.push({ type: 'good', title: `${fmt(erFree * 12)}/yr in free employer contributions`, body: `Your employer adds ${fmt(erFree)}/mo to your RRSP at no cost to you. Contributing enough to trigger the full match is one of the highest-return financial moves available.` })
+  }
+
+  if (assumptions?.tfsa_room && assumptions.tfsa_room > 0) {
+    tips.push({ type: 'info', title: `${fmt(assumptions.tfsa_room)} in TFSA room available`, body: "TFSA withdrawals are completely tax-free in retirement and don't reduce OAS or GIS benefits. Prioritize TFSA for flexible spending — it's the most flexible retirement account." })
+  }
+
+  if (assumptions?.rrsp_room && assumptions.rrsp_room > 0) {
+    tips.push({ type: 'info', title: `${fmt(assumptions.rrsp_room)} in RRSP room available`, body: 'RRSP contributions reduce your taxable income today and grow tax-sheltered. If your tax bracket is higher now than it will be in retirement, RRSP contributions offer strong tax deferral.' })
+  }
+
+  if (yrs >= 20) {
+    const totalMultiple = Math.pow(1 + returnRate, yrs).toFixed(1)
+    tips.push({ type: 'info', title: 'Time is your biggest advantage', body: `Over ${yrs} years, every dollar invested today becomes $${totalMultiple} — that's the power of compounding. Consistency and staying invested matters far more than timing the market.` })
+  }
+
+  if (yrs > 0 && yrs < 10 && fundedPct < 100) {
+    tips.push({ type: 'warn', title: 'Short time horizon — consider sequence-of-returns risk', body: `With ${yrs} years to retirement, a market downturn near retirement can significantly impact your outcome. Gradually shifting to more conservative assets as you approach retirement is worth discussing with an advisor.` })
+  }
+
+  // ── UI state ──────────────────────────────────────────────────────────────
+  const readinessColor = fundedPct >= 100 ? 'text-green-400' : fundedPct >= 75 ? 'text-amber-400' : 'text-red-400'
+  const readinessBadge = fundedPct >= 100 ? 'bg-green-900/40 text-green-400' : fundedPct >= 75 ? 'bg-amber-900/40 text-amber-400' : 'bg-red-900/40 text-red-400'
+  const readinessLabel = fundedPct >= 100 ? 'On Track' : fundedPct >= 75 ? 'Almost There' : 'Needs Attention'
+  const progressColor = fundedPct >= 100 ? 'bg-green-500' : fundedPct >= 75 ? 'bg-amber-500' : 'bg-red-500'
+  const tipBorder = { good: 'border-l-green-500', warn: 'border-l-amber-500', info: 'border-l-blue-500' }
+  const tipTitle = { good: 'text-green-400', warn: 'text-amber-400', info: 'text-blue-400' }
+
+  if (!primaryIncome) {
+    return (
+      <div className="card text-center py-16">
+        <Target className="mx-auto text-surface-600 mb-3" size={36} />
+        <p className="text-surface-400 font-medium mb-1">No income streams found</p>
+        <p className="text-surface-500 text-sm">Add at least one income source in the Income tab to use the retirement planner.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+
+      {/* ── Row 1: Sliders + Readiness ──────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-4">
+
+        {/* Inputs panel */}
+        <div className="card p-5 space-y-5">
+          <p className="text-xs font-semibold text-surface-400 uppercase tracking-widest">Parameters</p>
+
+          {([
+            { label: 'Your current age', val: currentAge, set: setCurrentAge, min: 18, max: 75, step: 1, unit: '' as const, hint: '' },
+            { label: 'Target retirement age', val: retireAge, set: setRetireAge, min: 45, max: 80, step: 1, unit: '' as const, hint: '' },
+            { label: 'Income replacement', val: replacementPct, set: setReplacementPct, min: 40, max: 100, step: 5, unit: '%' as const, hint: '% of pre-retirement salary you want' },
+            { label: 'Safe withdrawal rate', val: swr, set: setSwr, min: 2, max: 6, step: 0.5, unit: '%' as const, hint: '4% is the traditional benchmark' },
+          ] as const).map(({ label, val, set, min, max, step, unit, hint }) => (
+            <div key={label}>
+              <div className="flex justify-between text-xs mb-1.5">
+                <span className="text-surface-400">{label}</span>
+                <span className="font-mono font-bold text-surface-100">{val}{unit}</span>
+              </div>
+              <input type="range" min={min} max={max} step={step} value={val}
+                onChange={e => (set as (v: number) => void)(Number(e.target.value))}
+                className="w-full accent-blue-500 cursor-pointer" />
+              {hint && <p className="text-[10px] text-surface-500 mt-0.5">{hint}</p>}
+            </div>
+          ))}
+
+          <div className="border-t border-surface-700 pt-4 space-y-1.5 text-xs">
+            <p className="text-[10px] text-surface-500 uppercase tracking-wide font-medium mb-2">Pulled from scenario</p>
+            {[
+              { label: 'Base income', val: `${fmt(baseMonthly)}/mo` },
+              { label: 'Income growth', val: `${(growthRate * 100).toFixed(1)}%/yr` },
+              { label: 'Investment return', val: `${(returnRate * 100).toFixed(1)}%/yr` },
+              { label: 'Monthly savings', val: `${fmt(totalSavings)}/mo` },
+              { label: 'Current portfolio', val: fmt(portfolio) },
+            ].map(({ label, val }) => (
+              <div key={label} className="flex justify-between">
+                <span className="text-surface-500">{label}</span>
+                <span className="font-mono text-surface-300">{val}</span>
+              </div>
+            ))}
+            {erMonthly > 0 && (
+              <div className="flex justify-between">
+                <span className="text-surface-500">incl. employer RRSP</span>
+                <span className="font-mono text-green-400">+{fmt(erMonthly)}/mo</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Readiness + key numbers */}
+        <div className="col-span-2 space-y-4">
+
+          {/* Readiness hero */}
+          <div className="card p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs text-surface-400 uppercase tracking-widest">Retirement Readiness</p>
+                <div className="flex items-baseline gap-3 mt-2">
+                  <span className={`text-5xl font-bold font-mono ${readinessColor}`}>
+                    {Math.min(Math.round(fundedPct), 999)}%
+                  </span>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${readinessBadge}`}>
+                    {readinessLabel}
+                  </span>
+                </div>
+                <p className="text-xs text-surface-500 mt-2">
+                  Projected {fmtBig(projected)} · Need {fmtBig(nestEgg)} · Retire at {retireAge} in {yrs} years
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                {fundedPct >= 100 ? (
+                  <div className="text-green-400 flex flex-col items-center gap-1">
+                    <CheckCircle size={36} />
+                    <p className="text-[10px]">Fully funded</p>
+                  </div>
+                ) : (
+                  <div className="w-28">
+                    <div className="w-full bg-surface-800 rounded-full h-3 overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-300 ${progressColor}`}
+                        style={{ width: `${Math.min(fundedPct, 100)}%` }} />
+                    </div>
+                    <p className="text-[10px] text-surface-500 text-center mt-1.5">{Math.round(fundedPct)}% funded</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 3-col key metrics */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="card p-4">
+              <p className="text-[10px] text-surface-500 uppercase tracking-wide mb-1">Nest Egg Needed</p>
+              <p className="text-2xl font-bold font-mono">{fmtBig(nestEgg)}</p>
+              <p className="text-[10px] text-surface-500 mt-1">{fmt(targetAnnual)}/yr at {swr}% SWR</p>
+            </div>
+            <div className="card p-4">
+              <p className="text-[10px] text-surface-500 uppercase tracking-wide mb-1">Projected at {retireAge}</p>
+              <p className={`text-2xl font-bold font-mono ${projected >= nestEgg ? 'text-green-400' : 'text-amber-400'}`}>
+                {fmtBig(projected)}
+              </p>
+              <p className="text-[10px] text-surface-500 mt-1">{(returnRate * 100).toFixed(0)}%/yr growth</p>
+            </div>
+            <div className="card p-4">
+              <p className="text-[10px] text-surface-500 uppercase tracking-wide mb-1">{gap > 0 ? 'Funding Gap' : 'Surplus'}</p>
+              <p className={`text-2xl font-bold font-mono ${gap <= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {gap <= 0 ? `+${fmtBig(Math.abs(gap))}` : `-${fmtBig(gap)}`}
+              </p>
+              <p className="text-[10px] text-surface-500 mt-1">
+                {gap > 0 ? `+${fmt(addlNeeded)}/mo to close` : 'you are fully funded'}
+              </p>
+            </div>
+          </div>
+
+          {/* Retirement income card */}
+          <div className="card p-4">
+            <p className="text-xs font-semibold text-surface-400 uppercase tracking-widest mb-3">
+              Income projection at age {retireAge}
+            </p>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-surface-500">Forecasted gross salary</span>
+                <span className="font-mono text-surface-300">{fmt(forecastedAnnual)}/yr</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-surface-500">Current portfolio grows to</span>
+                <span className="font-mono text-surface-300">{fmtBig(fvPortfolio)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-surface-500">Target ({replacementPct}% replacement)</span>
+                <span className="font-mono font-semibold text-surface-100">{fmt(targetAnnual)}/yr</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-surface-500">Contributions grow to</span>
+                <span className="font-mono text-surface-300">{fmtBig(fvContribs)}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-surface-700 mt-0.5">
+                <span className="text-surface-400 font-semibold">Monthly retirement income</span>
+                <span className="font-mono font-bold text-blue-400 text-sm">{fmt(targetAnnual / 12)}/mo</span>
+              </div>
+              {addlNeeded > 0 && (
+                <div className="flex justify-between pt-2 border-t border-surface-700 mt-0.5">
+                  <span className="text-red-400 font-semibold">Additional needed now</span>
+                  <span className="font-mono font-bold text-red-400">+{fmt(addlNeeded)}/mo</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tips ────────────────────────────────────────────────────────── */}
+      {tips.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-surface-400 uppercase tracking-widest mb-3">Insights & Tips</p>
+          <div className="grid grid-cols-2 gap-3">
+            {tips.slice(0, 4).map((tip, i) => (
+              <div key={i} className={`card p-4 border-l-2 ${tipBorder[tip.type]}`}>
+                <p className={`text-xs font-semibold mb-1.5 ${tipTitle[tip.type]}`}>{tip.title}</p>
+                <p className="text-xs text-surface-400 leading-relaxed">{tip.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Sensitivity table ───────────────────────────────────────────── */}
+      <div>
+        <p className="text-xs font-semibold text-surface-400 uppercase tracking-widest mb-3">
+          Retirement Age Sensitivity
+        </p>
+        <div className="card overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left text-surface-500 border-b border-surface-700">
+                <th className="px-4 py-2.5 font-medium">Retire at</th>
+                <th className="px-4 py-2.5 font-medium text-right">Years to go</th>
+                <th className="px-4 py-2.5 font-medium text-right">Target income</th>
+                <th className="px-4 py-2.5 font-medium text-right">Nest egg needed</th>
+                <th className="px-4 py-2.5 font-medium text-right">Projected</th>
+                <th className="px-4 py-2.5 font-medium text-right">Funded</th>
+                <th className="px-4 py-2.5 font-medium text-right">Extra needed/mo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-800">
+              {sensAges.map(age => {
+                const c = calcAge(age)
+                const isSel = age === retireAge
+                return (
+                  <tr key={age}
+                    className={`cursor-pointer transition-colors ${isSel ? 'bg-blue-900/20' : 'hover:bg-surface-800/40'}`}
+                    onClick={() => setRetireAge(age)}>
+                    <td className="px-4 py-2.5 font-semibold text-surface-200">
+                      {age}
+                      {isSel && <span className="ml-2 text-[10px] text-blue-400 font-normal">← selected</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-surface-400">{Math.max(0, age - currentAge)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-surface-300">{fmt(c.targetAnnual)}/yr</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-surface-300">{fmtBig(c.egg)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-surface-300">{fmtBig(c.proj)}</td>
+                    <td className={`px-4 py-2.5 text-right font-mono font-semibold ${c.funded >= 100 ? 'text-green-400' : c.funded >= 75 ? 'text-amber-400' : 'text-red-400'}`}>
+                      {Math.round(c.funded)}%
+                    </td>
+                    <td className={`px-4 py-2.5 text-right font-mono ${c.additional <= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {c.additional <= 0 ? '✓ on track' : `+${fmt(c.additional)}`}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[10px] text-surface-500 mt-1.5">Click any row to select that retirement age</p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Generic Table ─────────────────────────────────────────────────────────────
 
 function Table({ headers, rows, onDelete }: { headers: string[]; rows: { id: number; cells: string[] }[]; onDelete: (id: number) => void }) {
   if (rows.length === 0) return <p className="text-surface-500 text-sm py-4">No items yet.</p>
