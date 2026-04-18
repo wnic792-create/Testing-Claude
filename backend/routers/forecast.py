@@ -40,14 +40,16 @@ def rrsp_calculator(
 def compare_scenarios(
     scenario_ids: str = "",
     granularity: str = "monthly",
+    horizon_months: int = 60,
     db: Session = Depends(get_db),
 ):
     """Run forecast for multiple scenarios, return side-by-side."""
+    horizon_months = max(12, min(horizon_months, 360))
     ids = [int(x) for x in scenario_ids.split(",") if x.strip()]
     results = []
     for sid in ids:
         try:
-            forecast = run_forecast(db, sid)
+            forecast = run_forecast(db, sid, horizon_months=horizon_months)
             results.append(rollup_forecast(forecast, granularity))
         except ValueError as e:
             results.append({"scenario_id": sid, "error": str(e)})
@@ -58,11 +60,13 @@ def compare_scenarios(
 def get_forecast(
     scenario_id: int,
     granularity: str = "monthly",
+    horizon_months: int = 60,
     db: Session = Depends(get_db),
 ):
-    """Run the 60-month forecast for a scenario."""
+    """Run forecast for a scenario."""
+    horizon_months = max(12, min(horizon_months, 360))
     try:
-        forecast = run_forecast(db, scenario_id)
+        forecast = run_forecast(db, scenario_id, horizon_months=horizon_months)
         return rollup_forecast(forecast, granularity)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

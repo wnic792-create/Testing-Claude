@@ -44,6 +44,7 @@ interface ForecastResult {
 
 type Granularity = 'monthly' | 'quarterly' | 'yearly'
 type ChartView = 'net_worth' | 'cash_flow' | 'investment_growth' | 'assets_liabilities'
+type HorizonYears = 5 | 10 | 15 | 20 | 30
 
 const INVESTMENT_ACCOUNT_TYPES = ['tfsa', 'rrsp', 'fhsa', 'non_registered', 'savings_hisa']
 
@@ -52,11 +53,13 @@ const ACCT_COLORS = [
   '#f97316', '#ec4899', '#06b6d4', '#84cc16',
 ]
 
-const CHART_DESCRIPTIONS: Record<ChartView, string> = {
-  net_worth: 'How your total net worth (assets minus debts) evolves over 5 years.',
-  cash_flow: 'Monthly income vs. expenses (includes debt payments & taxes). Green = income, Red = outflow.',
-  investment_growth: 'Balance of each investment & savings account over 5 years. Stack height = total portfolio value.',
-  assets_liabilities: 'Your total assets and total debts tracked separately over time.',
+const chartDescription = (view: ChartView, years: number): string => {
+  switch (view) {
+    case 'net_worth': return `How your total net worth (assets minus debts) evolves over ${years} years.`
+    case 'cash_flow': return 'Monthly income vs. expenses (includes debt payments & taxes). Green = income, Red = outflow.'
+    case 'investment_growth': return `Balance of each investment & savings account over ${years} years. Stack height = total portfolio value.`
+    case 'assets_liabilities': return 'Your total assets and total debts tracked separately over time.'
+  }
 }
 
 export default function ForecastPage() {
@@ -67,6 +70,7 @@ export default function ForecastPage() {
   const [forecasts, setForecasts] = useState<ForecastResult[]>([])
   const [granularity, setGranularity] = useState<Granularity>('monthly')
   const [chartView, setChartView] = useState<ChartView>('net_worth')
+  const [horizonYears, setHorizonYears] = useState<HorizonYears>(5)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -81,10 +85,11 @@ export default function ForecastPage() {
     if (selectedIds.length === 0) return
     setLoading(true)
     const ids = selectedIds.join(',')
-    api.get<ForecastResult[]>(`/forecast/compare?scenario_ids=${ids}&granularity=${granularity}`)
+    const months = horizonYears * 12
+    api.get<ForecastResult[]>(`/forecast/compare?scenario_ids=${ids}&granularity=${granularity}&horizon_months=${months}`)
       .then(setForecasts)
       .finally(() => setLoading(false))
-  }, [selectedIds, granularity])
+  }, [selectedIds, granularity, horizonYears])
 
   const toggleScenario = (id: number) => {
     setSelectedIds(prev =>
@@ -193,17 +198,31 @@ export default function ForecastPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Forecast</h1>
-          <p className="text-xs text-surface-500 mt-0.5">5-year projection based on your scenario assumptions</p>
+          <p className="text-xs text-surface-500 mt-0.5">{horizonYears}-year projection based on your scenario assumptions</p>
         </div>
-        <div className="flex items-center gap-1 bg-surface-800 rounded-lg p-1">
-          {(['monthly', 'quarterly', 'yearly'] as Granularity[]).map(g => (
-            <button key={g} onClick={() => setGranularity(g)}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                granularity === g ? 'bg-surface-600 text-white' : 'text-surface-400 hover:text-surface-200'
-              }`}>
-              {g.charAt(0).toUpperCase() + g.slice(1)}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          {/* Horizon selector */}
+          <div className="flex items-center gap-1 bg-surface-800 rounded-lg p-1">
+            {([5, 10, 15, 20, 30] as HorizonYears[]).map(y => (
+              <button key={y} onClick={() => setHorizonYears(y)}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                  horizonYears === y ? 'bg-blue-600 text-white' : 'text-surface-400 hover:text-surface-200'
+                }`}>
+                {y}y
+              </button>
+            ))}
+          </div>
+          {/* Granularity selector */}
+          <div className="flex items-center gap-1 bg-surface-800 rounded-lg p-1">
+            {(['monthly', 'quarterly', 'yearly'] as Granularity[]).map(g => (
+              <button key={g} onClick={() => setGranularity(g)}
+                className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                  granularity === g ? 'bg-surface-600 text-white' : 'text-surface-400 hover:text-surface-200'
+                }`}>
+                {g.charAt(0).toUpperCase() + g.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -237,7 +256,7 @@ export default function ForecastPage() {
         <>
           {/* Summary cards */}
           <div>
-            <p className="text-xs text-surface-500 uppercase tracking-wide mb-3">5-Year Summary — {primary.scenario_name}</p>
+            <p className="text-xs text-surface-500 uppercase tracking-wide mb-3">{horizonYears}-Year Summary — {primary.scenario_name}</p>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="card col-span-2 lg:col-span-1">
                 <p className="text-xs text-surface-400 uppercase mb-2">Net Worth</p>
@@ -255,14 +274,14 @@ export default function ForecastPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-surface-500">In 5 Years</p>
+                    <p className="text-xs text-surface-500">In {horizonYears} Years</p>
                     <p className="text-base font-bold font-mono">{fmt(s.ending_net_worth)}</p>
                   </div>
                 </div>
               </div>
 
               <div className="card">
-                <p className="text-xs text-surface-400 uppercase mb-2">5-Year Income vs Outflows</p>
+                <p className="text-xs text-surface-400 uppercase mb-2">{horizonYears}-Year Income vs Outflows</p>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs">
                     <span className="text-surface-400">Gross Income</span>
@@ -339,7 +358,7 @@ export default function ForecastPage() {
             </div>
             <p className="text-xs text-surface-500 flex items-center gap-1.5 mb-4">
               <Info size={11} />
-              {CHART_DESCRIPTIONS[chartView]}
+              {chartDescription(chartView, horizonYears)}
             </p>
 
             <ResponsiveContainer width="100%" height={380}>
@@ -450,7 +469,7 @@ export default function ForecastPage() {
                       <th className="pb-2 font-medium">Account</th>
                       <th className="pb-2 font-medium">Type</th>
                       <th className="pb-2 font-medium text-right">Today</th>
-                      <th className="pb-2 font-medium text-right">In 5 Years</th>
+                      <th className="pb-2 font-medium text-right">In {horizonYears} Years</th>
                       <th className="pb-2 font-medium text-right">Change</th>
                     </tr>
                   </thead>
@@ -525,7 +544,7 @@ export default function ForecastPage() {
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-surface-600 font-semibold">
-                      <td className="py-2 text-surface-300">5-Year Total</td>
+                      <td className="py-2 text-surface-300">{horizonYears}-Year Total</td>
                       <td className="py-2 text-right font-mono text-green-400">{fmtFull(yearlyTotals.income)}</td>
                       <td className="py-2 text-right font-mono text-red-400">{fmtFull(yearlyTotals.expenses - yearlyTotals.debt_payments)}</td>
                       <td className="py-2 text-right font-mono text-red-300">{fmtFull(yearlyTotals.debt_payments)}</td>

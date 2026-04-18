@@ -1,5 +1,5 @@
 """
-60-month forecast engine.
+Multi-year forecast engine.
 
 Iterates month by month, applying:
 - Income streams (with growth rate, tax deductions)
@@ -24,12 +24,12 @@ from backend.models.forecast import (
 from backend.services.tax_engine import load_tax_config, calculate_annual_tax
 from backend.services.amortization import calculate_amortization
 
-HORIZON = 60  # months
+DEFAULT_HORIZON = 60  # months
 
 
-def run_forecast(db: Session, scenario_id: int) -> dict:
+def run_forecast(db: Session, scenario_id: int, horizon_months: int = DEFAULT_HORIZON) -> dict:
     """
-    Run a full 60-month forecast for a scenario.
+    Run a forecast for a scenario over the given number of months.
 
     Returns:
         {
@@ -127,7 +127,7 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
     start_year = start_date.year
     start_month_num = start_date.month
 
-    for m in range(HORIZON):
+    for m in range(horizon_months):
         total_months = start_month_num - 1 + m
         year = start_year + total_months // 12
         month_num = total_months % 12 + 1
@@ -367,7 +367,7 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
             "balances": {aid: round(bal, 2) for aid, bal in balances.items()},
         })
 
-    # Summary — starting NW is actual current balances, ending is after 60 months
+    # Summary
     starting_nw = initial_net_worth
     ending_nw = months_data[-1]["net_worth"] if months_data else 0
 
@@ -375,7 +375,7 @@ def run_forecast(db: Session, scenario_id: int) -> dict:
         "scenario_id": scenario_id,
         "scenario_name": scenario.name,
         "scenario_color": scenario.color,
-        "horizon_months": HORIZON,
+        "horizon_months": horizon_months,
         "months": months_data,
         "summary": {
             "starting_net_worth": starting_nw,
