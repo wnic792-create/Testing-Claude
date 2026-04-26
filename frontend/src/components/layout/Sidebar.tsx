@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   Tags,
   Scale,
+  Repeat,
   Settings,
   Sun,
   Moon,
@@ -28,6 +29,7 @@ const navItems = [
   { path: '/assumptions', icon: SlidersHorizontal, labelKey: 'nav.assumptions' },
   { path: '/categories', icon: Tags, labelKey: 'nav.categories' },
   { path: '/reconciliation', icon: Scale, labelKey: 'nav.reconciliation' },
+  { path: '/recurring', icon: Repeat, labelKey: 'nav.recurring' },
   { path: '/settings', icon: Settings, labelKey: 'nav.settings' },
 ]
 

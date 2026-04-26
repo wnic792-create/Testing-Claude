@@ -10,6 +10,7 @@ import ScenarioPage from './components/scenarios/ScenarioPage'
 import GoalPage from './components/goals/GoalPage'
 import CategoriesPage from './components/categories/CategoriesPage'
 import ReconciliationPage from './components/reconciliation/ReconciliationPage'
+import RecurringPage from './components/recurring/RecurringPage'
 import SettingsPage from './components/layout/SettingsPage'
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="assumptions" element={<AssumptionsPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="reconciliation" element={<ReconciliationPage />} />
+        <Route path="recurring" element={<RecurringPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

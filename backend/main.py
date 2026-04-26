@@ -13,8 +13,9 @@ import backend.models.forecast
 import backend.models.goal
 import backend.models.snapshot
 import backend.models.settings
+import backend.models.recurring
 
-from backend.routers import accounts, transactions, categories, import_export, budgets, forecast, scenarios, goals, backup
+from backend.routers import accounts, transactions, categories, import_export, budgets, forecast, scenarios, goals, backup, recurring
 from backend.database import SessionLocal
 from backend.services.category_seeder import seed_categories
 from backend.services.migrations import run_migrations
@@ -51,6 +52,7 @@ app.include_router(forecast.router, prefix="/api/forecast", tags=["forecast"])
 app.include_router(scenarios.router, prefix="/api/scenarios", tags=["scenarios"])
 app.include_router(goals.router, prefix="/api/goals", tags=["goals"])
 app.include_router(backup.router, prefix="/api/backup", tags=["backup"])
+app.include_router(recurring.router, prefix="/api/recurring", tags=["recurring"])
 
 @app.get("/api/health")
 def health():
