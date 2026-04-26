@@ -10,6 +10,7 @@ import {
   Target,
   SlidersHorizontal,
   Tags,
+  Scale,
   Settings,
   Sun,
   Moon,
@@ -26,6 +27,7 @@ const navItems = [
   { path: '/goals', icon: Target, labelKey: 'nav.goals' },
   { path: '/assumptions', icon: SlidersHorizontal, labelKey: 'nav.assumptions' },
   { path: '/categories', icon: Tags, labelKey: 'nav.categories' },
+  { path: '/reconciliation', icon: Scale, labelKey: 'nav.reconciliation' },
   { path: '/settings', icon: Settings, labelKey: 'nav.settings' },
 ]
 
