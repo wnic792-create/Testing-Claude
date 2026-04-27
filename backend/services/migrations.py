@@ -19,6 +19,11 @@ REQUIRED_COLUMNS: list[tuple[str, str, str]] = [
     ("categories", "is_transfer_category", "BOOLEAN DEFAULT 0"),
     ("categories", "default_transfer_account_id", "INTEGER"),
     ("savings_contributions", "expected_return_rate", "REAL"),
+    ("accounts", "profile_id", "INTEGER DEFAULT 1"),
+    ("scenarios", "profile_id", "INTEGER DEFAULT 1"),
+    ("budgets", "profile_id", "INTEGER DEFAULT 1"),
+    ("net_worth_snapshots", "profile_id", "INTEGER"),
+    ("recurring_transactions", "profile_id", "INTEGER DEFAULT 1"),
 ]
 
 

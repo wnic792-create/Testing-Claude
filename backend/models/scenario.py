@@ -7,6 +7,7 @@ class Scenario(Base):
     __tablename__ = "scenarios"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id"), default=1)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     cloned_from_id = Column(Integer, ForeignKey("scenarios.id"), nullable=True)

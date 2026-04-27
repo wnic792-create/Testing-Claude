@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Copy, Trash2, AlertTriangle, ChevronRight } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Scenario } from '../../api/types'
+import { useProfileStore } from '../../stores/profile'
 import ScenarioDetail from './ScenarioDetail'
 
 interface StressPreset {
@@ -18,6 +19,7 @@ export default function ScenarioPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
+  const activeProfileId = useProfileStore(s => s.activeProfileId)
 
   const fetchScenarios = async () => {
     const data = await api.get<Scenario[]>('/scenarios')
@@ -27,11 +29,11 @@ export default function ScenarioPage() {
   useEffect(() => {
     fetchScenarios()
     api.get<StressPreset[]>('/scenarios/presets/stress-tests').then(setPresets)
-  }, [])
+  }, [activeProfileId])
 
   const handleCreate = async () => {
     if (!newName.trim()) return
-    const s = await api.post<Scenario>('/scenarios', { name: newName.trim() })
+    const s = await api.post<Scenario>('/scenarios', { name: newName.trim(), profile_id: activeProfileId === 'all' ? 1 : activeProfileId })
     setNewName('')
     setCreating(false)
     fetchScenarios()

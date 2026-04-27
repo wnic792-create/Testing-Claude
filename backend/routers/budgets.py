@@ -16,6 +16,7 @@ class BudgetCreate(BaseModel):
     year_month: str
     amount: float
     rollover: bool = False
+    profile_id: int = 1
 
 
 class BudgetUpdate(BaseModel):
@@ -30,8 +31,10 @@ class BudgetBulkItem(BaseModel):
 
 
 @router.get("/")
-def list_budgets(year_month: Optional[str] = None, db: Session = Depends(get_db)):
+def list_budgets(year_month: Optional[str] = None, profile_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(Budget)
+    if profile_id is not None:
+        query = query.filter(Budget.profile_id == profile_id)
     if year_month:
         query = query.filter(Budget.year_month == year_month)
     return query.all()
@@ -131,7 +134,7 @@ def delete_budget(budget_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/variance/{year_month}")
-def budget_variance(year_month: str, db: Session = Depends(get_db)):
+def budget_variance(year_month: str, profile_id: Optional[int] = None, db: Session = Depends(get_db)):
     """
     Compute budget vs actual spending per category for a given month.
     Returns each budget line with actual spending, variance, and rollover.
@@ -146,7 +149,10 @@ def budget_variance(year_month: str, db: Session = Depends(get_db)):
         date_to = f"{year:04d}-{month + 1:02d}-01"
 
     # Get all budgets for this month
-    budgets = db.query(Budget).filter(Budget.year_month == year_month).all()
+    bq = db.query(Budget).filter(Budget.year_month == year_month)
+    if profile_id is not None:
+        bq = bq.filter(Budget.profile_id == profile_id)
+    budgets = bq.all()
 
     # Get actual spending grouped by category for this month
     actuals = (

@@ -14,8 +14,9 @@ import backend.models.goal
 import backend.models.snapshot
 import backend.models.settings
 import backend.models.recurring
+import backend.models.profile
 
-from backend.routers import accounts, transactions, categories, import_export, budgets, forecast, scenarios, goals, backup, recurring
+from backend.routers import accounts, transactions, categories, import_export, budgets, forecast, scenarios, goals, backup, recurring, profiles
 from backend.database import SessionLocal
 from backend.services.category_seeder import seed_categories
 from backend.services.migrations import run_migrations
@@ -29,9 +30,17 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         seed_categories(db)
+        _seed_default_profile(db)
     finally:
         db.close()
     yield
+
+def _seed_default_profile(db):
+    from backend.models.profile import Profile
+    if db.query(Profile).count() == 0:
+        db.add(Profile(name="My Finances", color="#3B82F6", avatar_initial="M"))
+        db.commit()
+
 
 app = FastAPI(title="Local Finance", version="0.1.0", lifespan=lifespan)
 
@@ -53,6 +62,7 @@ app.include_router(scenarios.router, prefix="/api/scenarios", tags=["scenarios"]
 app.include_router(goals.router, prefix="/api/goals", tags=["goals"])
 app.include_router(backup.router, prefix="/api/backup", tags=["backup"])
 app.include_router(recurring.router, prefix="/api/recurring", tags=["recurring"])
+app.include_router(profiles.router, prefix="/api/profiles", tags=["profiles"])
 
 @app.get("/api/health")
 def health():

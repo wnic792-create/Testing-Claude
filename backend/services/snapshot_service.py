@@ -8,9 +8,12 @@ from backend.models.account import Account
 from backend.models.snapshot import NetWorthSnapshot
 
 
-def take_snapshot(db: Session) -> NetWorthSnapshot:
+def take_snapshot(db: Session, profile_id: int | None = None) -> NetWorthSnapshot:
     """Take a net worth snapshot with per-account breakdown."""
-    accounts = db.query(Account).all()
+    query = db.query(Account)
+    if profile_id is not None:
+        query = query.filter(Account.profile_id == profile_id)
+    accounts = query.all()
 
     total_assets = 0.0
     total_liabilities = 0.0
@@ -29,6 +32,7 @@ def take_snapshot(db: Session) -> NetWorthSnapshot:
             total_liabilities += abs(a.current_balance)
 
     snapshot = NetWorthSnapshot(
+        profile_id=profile_id,
         date=date.today().isoformat(),
         total_assets=round(total_assets, 2),
         total_liabilities=round(total_liabilities, 2),
@@ -41,9 +45,12 @@ def take_snapshot(db: Session) -> NetWorthSnapshot:
     return snapshot
 
 
-def get_snapshot_history(db: Session) -> list[dict]:
+def get_snapshot_history(db: Session, profile_id: int | None = None) -> list[dict]:
     """Get all snapshots ordered by date."""
-    snapshots = db.query(NetWorthSnapshot).order_by(NetWorthSnapshot.date.asc()).all()
+    query = db.query(NetWorthSnapshot)
+    if profile_id is not None:
+        query = query.filter(NetWorthSnapshot.profile_id == profile_id)
+    snapshots = query.order_by(NetWorthSnapshot.date.asc()).all()
     return [
         {
             "id": s.id,

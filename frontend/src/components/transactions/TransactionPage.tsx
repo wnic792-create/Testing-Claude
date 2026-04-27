@@ -5,6 +5,7 @@ import TransactionList from './TransactionList'
 import ImportDialog from './ImportDialog'
 import { api } from '../../api/client'
 import type { Account, Category } from '../../api/types'
+import { useProfileStore } from '../../stores/profile'
 
 const EMPTY_FORM = {
   account_id: '',
@@ -26,10 +27,13 @@ export default function TransactionPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [saving, setSaving] = useState(false)
 
+  const activeProfileId = useProfileStore(s => s.activeProfileId)
+
   useEffect(() => {
     api.get<Account[]>('/accounts').then(setAccounts)
     api.get<Category[]>('/categories/flat').then(setCategories)
-  }, [])
+    setRefreshKey(k => k + 1)
+  }, [activeProfileId])
 
   const handleImported = useCallback(() => {
     setRefreshKey(k => k + 1)

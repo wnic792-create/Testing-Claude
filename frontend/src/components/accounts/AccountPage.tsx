@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, RefreshCw } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Account } from '../../api/types'
+import { useProfileStore } from '../../stores/profile'
 
 const ACCOUNT_TYPES = [
   { value: 'chequing', label: 'Chequing' },
@@ -27,18 +28,20 @@ export default function AccountPage() {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', type: 'chequing', currency: 'CAD', institution: '', current_balance: 0 })
+  const { activeProfileId, profiles } = useProfileStore()
 
   const fetchAccounts = async () => {
     const data = await api.get<Account[]>('/accounts')
     setAccounts(data)
   }
 
-  useEffect(() => { fetchAccounts() }, [])
+  useEffect(() => { fetchAccounts() }, [activeProfileId])
 
   const handleCreate = async () => {
     const isDebt = DEBT_TYPES.includes(form.type)
     await api.post('/accounts', {
       ...form,
+      profile_id: activeProfileId === 'all' ? 1 : activeProfileId,
       is_asset: !isDebt,
       current_balance: isDebt ? -Math.abs(form.current_balance) : form.current_balance,
     })
@@ -154,6 +157,15 @@ export default function AccountPage() {
                 <p className="text-xs text-surface-400">
                   {ACCOUNT_TYPES.find(at => at.value === account.type)?.label || account.type}
                   {account.institution && ` · ${account.institution}`}
+                  {activeProfileId === 'all' && (() => {
+                    const p = profiles.find(pr => pr.id === account.profile_id)
+                    return p ? (
+                      <span className="ml-1.5 inline-flex items-center gap-1">
+                        · <span className="w-2 h-2 rounded-full inline-block" style={{ background: p.color }} />
+                        <span>{p.name}</span>
+                      </span>
+                    ) : null
+                  })()}
                 </p>
               </div>
               <div className="flex items-center gap-4">

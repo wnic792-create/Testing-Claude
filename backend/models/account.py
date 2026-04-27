@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, func
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, func
 
 from backend.database import Base
 
@@ -7,6 +7,7 @@ class Account(Base):
     __tablename__ = "accounts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id"), default=1)
     name = Column(String, nullable=False)
     type = Column(String, nullable=False)  # chequing, savings_hisa, tfsa, rrsp, fhsa, non_registered, crypto, real_estate, credit_card, loc, mortgage, student_loan, car_loan
     currency = Column(String, default="CAD")  # CAD | USD

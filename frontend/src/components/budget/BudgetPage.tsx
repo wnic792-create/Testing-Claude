@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Copy, AlertTriangle } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Category } from '../../api/types'
+import { useProfileStore } from '../../stores/profile'
 
 interface VarianceLine {
   budget_id: number
@@ -47,6 +48,7 @@ function shiftMonth(ym: string, delta: number): string {
 
 export default function BudgetPage() {
   const { t, i18n } = useTranslation()
+  const activeProfileId = useProfileStore(s => s.activeProfileId)
   const [month, setMonth] = useState(getCurrentMonth())
   const [categories, setCategories] = useState<Category[]>([])
   const [variance, setVariance] = useState<VarianceReport | null>(null)
@@ -91,7 +93,7 @@ export default function BudgetPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [month])
+  useEffect(() => { fetchData() }, [month, activeProfileId])
 
   const handleSave = async () => {
     const items = Object.values(entries)

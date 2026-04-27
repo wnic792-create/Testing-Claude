@@ -13,6 +13,7 @@ router = APIRouter()
 class AccountCreate(BaseModel):
     name: str
     type: str
+    profile_id: int = 1
     currency: str = "CAD"
     institution: Optional[str] = None
     current_balance: float = 0.0
@@ -45,20 +46,23 @@ class AccountUpdate(BaseModel):
 
 
 @router.get("/")
-def list_accounts(db: Session = Depends(get_db)):
-    return db.query(Account).all()
+def list_accounts(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Account)
+    if profile_id is not None:
+        query = query.filter(Account.profile_id == profile_id)
+    return query.all()
 
 
 @router.get("/snapshots")
-def list_snapshots(db: Session = Depends(get_db)):
+def list_snapshots(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
     """Get net worth snapshot history."""
-    return get_snapshot_history(db)
+    return get_snapshot_history(db, profile_id=profile_id)
 
 
 @router.post("/snapshots", status_code=201)
-def create_snapshot(db: Session = Depends(get_db)):
+def create_snapshot(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
     """Take a new net worth snapshot."""
-    return take_snapshot(db)
+    return take_snapshot(db, profile_id=profile_id)
 
 
 @router.post("/", status_code=201)

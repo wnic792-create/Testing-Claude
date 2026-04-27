@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Account, Transaction, Category } from '../../api/types'
+import { useProfileStore } from '../../stores/profile'
 
 interface Snapshot {
   id: number
@@ -67,6 +68,7 @@ export default function Dashboard() {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [period, setPeriod] = useState<Period>('this_month')
   const [acctFilter, setAcctFilter] = useState<'all' | 'liquid' | 'investments' | 'debts'>('all')
+  const activeProfileId = useProfileStore(s => s.activeProfileId)
   // Tracks whether we've already auto-nudged the period once — so manual
   // selection isn't overridden by a later re-fetch.
   const [autoPicked, setAutoPicked] = useState(false)
@@ -84,7 +86,7 @@ export default function Dashboard() {
       limit: '1000',
     })
     api.get<Transaction[]>(`/transactions?${params}`).then(setTransactions)
-  }, [])
+  }, [activeProfileId])
 
   useEffect(() => {
     refresh()

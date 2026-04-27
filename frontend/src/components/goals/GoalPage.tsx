@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, Target, CheckCircle, Clock } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Scenario, Goal, Account } from '../../api/types'
+import { useProfileStore } from '../../stores/profile'
 
 const GOAL_TYPES = [
   { value: 'lump_sum', label: 'Lump Sum (e.g. down payment)' },
@@ -34,13 +35,15 @@ export default function GoalPage() {
     months_expenses: 6, linked_account_id: '', target_date: '',
   })
 
+  const activeProfileId = useProfileStore(s => s.activeProfileId)
+
   useEffect(() => {
     api.get<Scenario[]>('/scenarios').then(s => {
       setScenarios(s)
       if (s.length > 0) setSelectedScenario(s[0].id)
     })
     api.get<Account[]>('/accounts').then(setAccounts)
-  }, [])
+  }, [activeProfileId])
 
   useEffect(() => {
     if (selectedScenario) {

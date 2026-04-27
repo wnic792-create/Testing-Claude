@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from backend.database import get_db
 from backend.models.goal import Goal
+from backend.models.scenario import Scenario
 
 router = APIRouter()
 
@@ -28,10 +29,12 @@ class GoalUpdate(BaseModel):
 
 
 @router.get("/")
-def list_goals(scenario_id: Optional[int] = None, db: Session = Depends(get_db)):
+def list_goals(scenario_id: Optional[int] = None, profile_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(Goal)
     if scenario_id:
         query = query.filter(Goal.scenario_id == scenario_id)
+    if profile_id is not None:
+        query = query.join(Scenario, Goal.scenario_id == Scenario.id).filter(Scenario.profile_id == profile_id)
     return query.all()
 
 

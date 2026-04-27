@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, Play, SkipForward, Pause, CheckCircle, X } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Account, Category } from '../../api/types'
+import { useProfileStore } from '../../stores/profile'
 
 interface RecurringRule {
   id: number
@@ -61,9 +62,11 @@ export default function RecurringPage() {
     notes: '',
   })
 
+  const activeProfileId = useProfileStore(s => s.activeProfileId)
+
   const refresh = useCallback(() => {
     api.get<RecurringRule[]>('/recurring').then(setRules)
-  }, [])
+  }, [activeProfileId])
 
   useEffect(() => {
     refresh()
@@ -82,6 +85,7 @@ export default function RecurringPage() {
     if (!form.account_id || !form.description || !form.amount) return
     await api.post('/recurring', {
       account_id: Number(form.account_id),
+      profile_id: activeProfileId === 'all' ? 1 : activeProfileId,
       description: form.description,
       amount: Number(form.amount),
       category_id: form.category_id ? Number(form.category_id) : null,

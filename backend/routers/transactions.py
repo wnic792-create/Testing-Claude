@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from backend.database import get_db
 from backend.models.transaction import Transaction
+from backend.models.account import Account
 from backend.services.categorization import learn_from_correction, auto_categorize, categorize_batch
 from backend.services.recurring_detector import detect_recurring
 from backend.services import account_balance
@@ -53,6 +54,7 @@ class TransferCreate(BaseModel):
 @router.get("/")
 def list_transactions(
     account_id: Optional[int] = None,
+    profile_id: Optional[int] = None,
     category_id: Optional[int] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
@@ -64,6 +66,8 @@ def list_transactions(
     db: Session = Depends(get_db),
 ):
     query = db.query(Transaction)
+    if profile_id is not None:
+        query = query.join(Account, Transaction.account_id == Account.id).filter(Account.profile_id == profile_id)
     if account_id:
         query = query.filter(Transaction.account_id == account_id)
     if category_id:

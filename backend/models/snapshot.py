@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, func
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func
 
 from backend.database import Base
 
@@ -7,6 +7,7 @@ class NetWorthSnapshot(Base):
     __tablename__ = "net_worth_snapshots"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=True)
     date = Column(String, nullable=False)
     total_assets = Column(Float, nullable=False)
     total_liabilities = Column(Float, nullable=False)

@@ -7,6 +7,7 @@ class RecurringTransaction(Base):
     __tablename__ = "recurring_transactions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id"), default=1)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
     description = Column(String, nullable=False)
     amount = Column(Float, nullable=False)

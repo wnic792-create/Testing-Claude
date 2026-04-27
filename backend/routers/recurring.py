@@ -15,6 +15,7 @@ class RecurringCreate(BaseModel):
     account_id: int
     description: str
     amount: float
+    profile_id: int = 1
     currency: str = "CAD"
     category_id: Optional[int] = None
     frequency: str  # weekly | biweekly | monthly | quarterly | annual
@@ -59,8 +60,11 @@ def advance_date(current: str, frequency: str) -> str:
 
 
 @router.get("/")
-def list_recurring(db: Session = Depends(get_db)):
-    return db.query(RecurringTransaction).order_by(RecurringTransaction.next_date).all()
+def list_recurring(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(RecurringTransaction)
+    if profile_id is not None:
+        query = query.filter(RecurringTransaction.profile_id == profile_id)
+    return query.order_by(RecurringTransaction.next_date).all()
 
 
 @router.post("/", status_code=201)

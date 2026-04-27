@@ -7,6 +7,7 @@ import {
 import { TrendingUp, TrendingDown, Info } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Scenario, Account } from '../../api/types'
+import { useProfileStore } from '../../stores/profile'
 
 interface ForecastMonth {
   month: number
@@ -72,6 +73,7 @@ export default function ForecastPage() {
   const [chartView, setChartView] = useState<ChartView>('net_worth')
   const [horizonYears, setHorizonYears] = useState<HorizonYears>(5)
   const [loading, setLoading] = useState(false)
+  const activeProfileId = useProfileStore(s => s.activeProfileId)
 
   useEffect(() => {
     api.get<Scenario[]>('/scenarios').then(s => {
@@ -79,7 +81,7 @@ export default function ForecastPage() {
       if (s.length > 0) setSelectedIds([s[0].id])
     })
     api.get<Account[]>('/accounts').then(setAccounts)
-  }, [])
+  }, [activeProfileId])
 
   useEffect(() => {
     if (selectedIds.length === 0) return

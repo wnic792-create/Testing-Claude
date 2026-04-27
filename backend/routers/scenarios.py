@@ -17,6 +17,7 @@ class ScenarioCreate(BaseModel):
     name: str
     description: Optional[str] = None
     color: str = "#3B82F6"
+    profile_id: int = 1
 
 
 class ScenarioUpdate(BaseModel):
@@ -26,8 +27,11 @@ class ScenarioUpdate(BaseModel):
 
 
 @router.get("/")
-def list_scenarios(db: Session = Depends(get_db)):
-    return db.query(Scenario).all()
+def list_scenarios(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Scenario)
+    if profile_id is not None:
+        query = query.filter(Scenario.profile_id == profile_id)
+    return query.all()
 
 
 @router.get("/presets/stress-tests")
@@ -97,6 +101,7 @@ def clone_scenario(scenario_id: int, name: Optional[str] = None, db: Session = D
         description=original.description,
         cloned_from_id=original.id,
         color=original.color,
+        profile_id=original.profile_id,
     )
     db.add(clone)
     db.commit()

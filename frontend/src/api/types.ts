@@ -1,5 +1,14 @@
+export interface Profile {
+  id: number
+  name: string
+  color: string
+  avatar_initial: string
+  created_at: string
+}
+
 export interface Account {
   id: number
+  profile_id: number
   name: string
   type: string
   currency: string
@@ -98,6 +107,7 @@ export interface Budget {
 
 export interface Scenario {
   id: number
+  profile_id: number
   name: string
   description: string | null
   cloned_from_id: number | null
