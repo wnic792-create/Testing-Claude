@@ -8,39 +8,94 @@
     @apply bg-surface-950 text-surface-100;
   }
 
-  /* Dense, information-rich scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-surface-900;
+    @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-surface-600 rounded-full;
+    @apply bg-surface-700/60 rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-surface-500;
+    @apply bg-surface-600;
   }
 
-  /* Make <option> popups readable in dark theme (browsers ignore bg-transparent on the dropdown list) */
   select option {
-    background-color: #1e293b; /* surface-800 */
-    color: #f1f5f9; /* surface-100 */
+    background-color: #1e293b;
+    color: #f1f5f9;
+  }
+
+  ::selection {
+    @apply bg-blue-500/30 text-blue-100;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-surface-900 border border-surface-700 rounded-lg p-4;
+    @apply bg-surface-900/80 backdrop-blur-sm border border-surface-700/50 rounded-xl p-4
+           shadow-[0_1px_3px_rgba(0,0,0,0.3),0_1px_2px_rgba(0,0,0,0.2)]
+           transition-all duration-200;
   }
+  .card:hover {
+    @apply border-surface-600/50 shadow-[0_4px_12px_rgba(0,0,0,0.4),0_2px_4px_rgba(0,0,0,0.3)];
+  }
+
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors;
+    @apply bg-gradient-to-r from-blue-600 to-blue-500
+           hover:from-blue-500 hover:to-blue-400
+           text-white px-4 py-2 rounded-lg text-sm font-medium
+           transition-all duration-200
+           shadow-[0_1px_3px_rgba(37,99,235,0.3)]
+           hover:shadow-[0_4px_12px_rgba(37,99,235,0.35)]
+           active:scale-[0.97];
   }
+
   .btn-secondary {
-    @apply bg-surface-700 hover:bg-surface-600 text-surface-200 px-4 py-2 rounded-md text-sm font-medium transition-colors;
+    @apply bg-surface-800/80 hover:bg-surface-700/80 border border-surface-600/40
+           text-surface-200 px-4 py-2 rounded-lg text-sm font-medium
+           transition-all duration-200
+           hover:border-surface-500/50
+           active:scale-[0.97];
   }
+
   .input {
-    @apply bg-surface-800 border border-surface-600 rounded-md px-3 py-2 text-sm text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500;
+    @apply bg-surface-800/60 border border-surface-600/40 rounded-lg px-3 py-2
+           text-sm text-surface-100 placeholder-surface-500
+           focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60
+           transition-all duration-200;
+  }
+
+  .badge-green {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium
+           bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+  }
+  .badge-red {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium
+           bg-red-500/10 text-red-400 border border-red-500/20;
+  }
+  .badge-amber {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium
+           bg-amber-500/10 text-amber-400 border border-amber-500/20;
+  }
+  .badge-blue {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium
+           bg-blue-500/10 text-blue-400 border border-blue-500/20;
+  }
+}
+
+@layer utilities {
+  .glow-blue {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15), 0 0 60px rgba(59, 130, 246, 0.05);
+  }
+  .glow-green {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15), 0 0 60px rgba(16, 185, 129, 0.05);
+  }
+  .glow-red {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.12), 0 0 60px rgba(239, 68, 68, 0.04);
+  }
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r;
   }
 }

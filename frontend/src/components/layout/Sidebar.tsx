@@ -23,20 +23,39 @@ import {
 import { useThemeStore } from '../../stores/theme'
 import { useProfileStore } from '../../stores/profile'
 
-const navItems = [
-  { path: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
-  { path: '/accounts', icon: Wallet, labelKey: 'nav.accounts' },
-  { path: '/transactions', icon: ArrowLeftRight, labelKey: 'nav.transactions' },
-  { path: '/budget', icon: PiggyBank, labelKey: 'nav.budget' },
-  { path: '/forecast', icon: TrendingUp, labelKey: 'nav.forecast' },
-  { path: '/scenarios', icon: GitBranch, labelKey: 'nav.scenarios' },
-  { path: '/goals', icon: Target, labelKey: 'nav.goals' },
-  { path: '/assumptions', icon: SlidersHorizontal, labelKey: 'nav.assumptions' },
-  { path: '/categories', icon: Tags, labelKey: 'nav.categories' },
-  { path: '/reconciliation', icon: Scale, labelKey: 'nav.reconciliation' },
-  { path: '/recurring', icon: Repeat, labelKey: 'nav.recurring' },
-  { path: '/profiles', icon: Users, labelKey: 'nav.profiles' },
-  { path: '/settings', icon: Settings, labelKey: 'nav.settings' },
+const NAV_SECTIONS = [
+  {
+    items: [
+      { path: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
+    ],
+  },
+  {
+    label: 'Money',
+    items: [
+      { path: '/accounts', icon: Wallet, labelKey: 'nav.accounts' },
+      { path: '/transactions', icon: ArrowLeftRight, labelKey: 'nav.transactions' },
+      { path: '/recurring', icon: Repeat, labelKey: 'nav.recurring' },
+    ],
+  },
+  {
+    label: 'Planning',
+    items: [
+      { path: '/budget', icon: PiggyBank, labelKey: 'nav.budget' },
+      { path: '/forecast', icon: TrendingUp, labelKey: 'nav.forecast' },
+      { path: '/scenarios', icon: GitBranch, labelKey: 'nav.scenarios' },
+      { path: '/goals', icon: Target, labelKey: 'nav.goals' },
+    ],
+  },
+  {
+    label: 'Setup',
+    items: [
+      { path: '/assumptions', icon: SlidersHorizontal, labelKey: 'nav.assumptions' },
+      { path: '/categories', icon: Tags, labelKey: 'nav.categories' },
+      { path: '/reconciliation', icon: Scale, labelKey: 'nav.reconciliation' },
+      { path: '/profiles', icon: Users, labelKey: 'nav.profiles' },
+      { path: '/settings', icon: Settings, labelKey: 'nav.settings' },
+    ],
+  },
 ]
 
 export default function Sidebar() {
@@ -66,70 +85,92 @@ export default function Sidebar() {
     : profiles.find(p => p.id === activeProfileId)
 
   return (
-    <aside className="w-52 bg-surface-900 border-r border-surface-700 flex flex-col h-full shrink-0">
-      <div className="px-4 py-4 border-b border-surface-700">
-        <h1 className="text-base font-bold tracking-tight text-surface-100">
-          Local Finance
-        </h1>
+    <aside className="w-56 bg-gradient-to-b from-surface-900 via-surface-900 to-surface-950 border-r border-surface-800/80 flex flex-col h-full shrink-0">
+      {/* Logo */}
+      <div className="px-5 py-5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <Wallet size={16} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-sm font-bold tracking-tight text-surface-100">Local Finance</h1>
+            <p className="text-[10px] text-surface-500 font-medium">Personal Tracker</p>
+          </div>
+        </div>
       </div>
 
       {/* Profile switcher */}
       {profiles.length > 0 && (
-        <div className="px-3 py-2 border-b border-surface-700" ref={dropdownRef}>
+        <div className="px-3 pb-3" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-surface-800 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-surface-800/50 hover:bg-surface-800/80 border border-surface-700/40 hover:border-surface-600/50 transition-all duration-200 text-left"
           >
             {activeProfile ? (
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
-                style={{ background: activeProfile.color }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm"
+                style={{ background: `linear-gradient(135deg, ${activeProfile.color}, ${activeProfile.color}dd)` }}
               >
                 {activeProfile.avatar_initial}
               </div>
             ) : (
-              <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-500 text-white shrink-0">
-                <Users size={12} />
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-500 text-white shrink-0 shadow-sm">
+                <Users size={13} />
               </div>
             )}
-            <span className="text-xs font-medium text-surface-200 truncate flex-1">
-              {activeProfile ? activeProfile.name : 'Combined'}
-            </span>
-            <ChevronDown size={12} className={`text-surface-500 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-medium text-surface-200 truncate block">
+                {activeProfile ? activeProfile.name : 'Combined'}
+              </span>
+              <span className="text-[10px] text-surface-500">
+                {activeProfile ? 'Personal' : 'All profiles'}
+              </span>
+            </div>
+            <ChevronDown size={13} className={`text-surface-500 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {dropdownOpen && (
-            <div className="mt-1 bg-surface-800 rounded-lg border border-surface-700 shadow-lg overflow-hidden">
-              {profiles.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => { setActiveProfileId(p.id); setDropdownOpen(false) }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-surface-700 transition-colors text-left"
-                >
-                  <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
-                    style={{ background: p.color }}
+            <div className="mt-1.5 bg-surface-800/95 backdrop-blur-md rounded-xl border border-surface-700/60 shadow-xl shadow-black/30 overflow-hidden absolute z-50 w-[calc(100%-1.5rem)]">
+              <div className="p-1.5">
+                {profiles.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => { setActiveProfileId(p.id); setDropdownOpen(false) }}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 text-xs rounded-lg transition-all duration-150 text-left ${
+                      activeProfileId === p.id
+                        ? 'bg-blue-500/10 text-blue-300'
+                        : 'hover:bg-surface-700/60 text-surface-300'
+                    }`}
                   >
-                    {p.avatar_initial}
-                  </div>
-                  <span className="text-surface-200 truncate flex-1">{p.name}</span>
-                  {activeProfileId === p.id && <Check size={12} className="text-blue-400 shrink-0" />}
-                </button>
-              ))}
-              <div className="border-t border-surface-700">
+                    <div
+                      className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[9px] font-bold shrink-0"
+                      style={{ background: p.color }}
+                    >
+                      {p.avatar_initial}
+                    </div>
+                    <span className="truncate flex-1">{p.name}</span>
+                    {activeProfileId === p.id && <Check size={13} className="text-blue-400 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+              <div className="border-t border-surface-700/50 p-1.5">
                 <button
                   onClick={() => { setActiveProfileId('all'); setDropdownOpen(false) }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-surface-700 transition-colors text-left"
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 text-xs rounded-lg transition-all duration-150 text-left ${
+                    activeProfileId === 'all'
+                      ? 'bg-purple-500/10 text-purple-300'
+                      : 'hover:bg-surface-700/60 text-surface-300'
+                  }`}
                 >
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-500 text-white shrink-0">
-                    <Users size={10} />
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-500 text-white shrink-0">
+                    <Users size={11} />
                   </div>
-                  <span className="text-surface-200 flex-1">Combined</span>
-                  {activeProfileId === 'all' && <Check size={12} className="text-purple-400 shrink-0" />}
+                  <span className="flex-1">Combined</span>
+                  {activeProfileId === 'all' && <Check size={13} className="text-purple-400 shrink-0" />}
                 </button>
                 <button
                   onClick={() => { setDropdownOpen(false); navigate('/profiles') }}
-                  className="w-full text-left px-3 py-2 text-xs text-surface-400 hover:text-surface-200 hover:bg-surface-700 transition-colors"
+                  className="w-full text-left px-2.5 py-2 text-xs text-surface-500 hover:text-surface-300 rounded-lg hover:bg-surface-700/60 transition-all duration-150"
                 >
                   Manage profiles…
                 </button>
@@ -139,37 +180,60 @@ export default function Sidebar() {
         </div>
       )}
 
-      <nav className="flex-1 py-2 overflow-y-auto">
-        {navItems.map(({ path, icon: Icon, labelKey }) => (
-          <NavLink
-            key={path}
-            to={path}
-            end={path === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-                isActive
-                  ? 'bg-surface-800 text-blue-400 border-r-2 border-blue-400'
-                  : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50'
-              }`
-            }
-          >
-            <Icon size={16} />
-            <span>{t(labelKey)}</span>
-          </NavLink>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 pb-2">
+        {NAV_SECTIONS.map((section, si) => (
+          <div key={si} className={si > 0 ? 'mt-5' : ''}>
+            {section.label && (
+              <p className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-surface-500/80">
+                {section.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {section.items.map(({ path, icon: Icon, labelKey }) => (
+                <NavLink
+                  key={path}
+                  to={path}
+                  end={path === '/'}
+                  className={({ isActive }) =>
+                    `group flex items-center gap-3 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-blue-500/10 text-blue-400 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.15)]'
+                        : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/60'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div className={`transition-colors duration-200 ${isActive ? 'text-blue-400' : 'text-surface-500 group-hover:text-surface-400'}`}>
+                        <Icon size={16} strokeWidth={isActive ? 2 : 1.75} />
+                      </div>
+                      <span>{t(labelKey)}</span>
+                      {isActive && (
+                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(59,130,246,0.6)]" />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
-      <div className="border-t border-surface-700 p-3 flex gap-2">
+      {/* Footer */}
+      <div className="border-t border-surface-800/60 p-3 flex gap-1.5">
         <button
           onClick={toggle}
-          className="flex-1 flex items-center justify-center gap-2 text-xs text-surface-400 hover:text-surface-200 py-1.5 rounded hover:bg-surface-800 transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 text-[11px] text-surface-500 hover:text-surface-300 py-2 rounded-lg hover:bg-surface-800/60 transition-all duration-200"
         >
-          {isDark ? <Sun size={14} /> : <Moon size={14} />}
+          {isDark ? <Sun size={13} /> : <Moon size={13} />}
           {isDark ? 'Light' : 'Dark'}
         </button>
+        <div className="w-px bg-surface-800" />
         <button
           onClick={toggleLang}
-          className="flex-1 text-xs text-surface-400 hover:text-surface-200 py-1.5 rounded hover:bg-surface-800 transition-colors font-medium"
+          className="flex-1 text-[11px] text-surface-500 hover:text-surface-300 py-2 rounded-lg hover:bg-surface-800/60 transition-all duration-200 font-semibold"
         >
           {i18n.language === 'en' ? 'FR' : 'EN'}
         </button>

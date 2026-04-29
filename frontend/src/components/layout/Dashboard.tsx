@@ -477,30 +477,31 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-6 lg:p-8 space-y-8 max-w-[1440px]">
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">{t('dashboard.title')}</h1>
-          <p className="text-xs text-surface-500 mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight">{t('dashboard.title')}</h1>
+          <p className="text-xs text-surface-500 mt-1">
             {now.toLocaleDateString(i18n.language === 'fr' ? 'fr-CA' : 'en-CA', {
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
             })}
-            {' · '}{daysRemaining} days left in month
+            <span className="text-surface-600 mx-1.5">·</span>
+            <span className="text-surface-400">{daysRemaining} days left in month</span>
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <select
             value={period}
             onChange={e => { setAutoPicked(true); setPeriod(e.target.value as Period) }}
-            className="input text-xs py-1"
+            className="input text-xs py-1.5 pr-7"
             title="Period used for income / spending / savings cards"
           >
             {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
               <option key={p} value={p}>{PERIOD_LABELS[p]}</option>
             ))}
           </select>
-          <button onClick={refresh} className="text-surface-500 hover:text-blue-400" title="Refresh">
+          <button onClick={refresh} className="p-2 rounded-lg text-surface-500 hover:text-blue-400 hover:bg-surface-800/50 transition-all duration-200" title="Refresh">
             <RefreshCw size={14} />
           </button>
         </div>
@@ -512,12 +513,14 @@ export default function Dashboard() {
 
         {/* Alert for uncategorized transactions */}
         {uncategorizedCount > 0 && (
-          <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-amber-800/50 bg-amber-900/20 text-amber-300 text-sm">
-            <AlertCircle size={15} />
-            <span>
-              {uncategorizedCount} transaction{uncategorizedCount === 1 ? '' : 's'} uncategorized — spending breakdown may be incomplete.
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-sm text-amber-300 text-sm">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+              <AlertCircle size={16} className="text-amber-400" />
+            </div>
+            <span className="text-xs">
+              <strong className="text-amber-300">{uncategorizedCount}</strong> transaction{uncategorizedCount === 1 ? '' : 's'} uncategorized — spending breakdown may be incomplete.
             </span>
-            <a href="/transactions" className="ml-auto text-xs underline hover:no-underline shrink-0">Review</a>
+            <a href="/transactions" className="ml-auto text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors shrink-0">Review</a>
           </div>
         )}
 
@@ -525,59 +528,68 @@ export default function Dashboard() {
         <div className="grid grid-cols-4 gap-4">
 
           {/* Net Worth — hero card spanning 2 cols */}
-          <div className="card col-span-2 p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs text-surface-400 uppercase tracking-widest">Net Worth</p>
-                <p className="text-4xl font-bold font-mono mt-2 tracking-tight">{fmt(netWorth)}</p>
-                <div className="mt-1.5 text-xs">
-                  {netWorthDelta != null ? (
-                    <span className={`flex items-center gap-1 ${netWorthDelta >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {netWorthDelta >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                      {netWorthDelta >= 0 ? '+' : ''}{fmt(netWorthDelta)} over the last 30 days
-                    </span>
-                  ) : (
-                    <span className="text-surface-500">Take a snapshot to track changes over time</span>
-                  )}
+          <div className="card col-span-2 p-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+            <div className="relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] text-surface-400 uppercase tracking-[0.15em] font-semibold">Net Worth</p>
+                  <p className="text-4xl font-bold font-mono mt-2.5 tracking-tight">{fmt(netWorth)}</p>
+                  <div className="mt-2 text-xs">
+                    {netWorthDelta != null ? (
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${netWorthDelta >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                        {netWorthDelta >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                        {netWorthDelta >= 0 ? '+' : ''}{fmt(netWorthDelta)}
+                        <span className="text-surface-500 ml-0.5">30d</span>
+                      </span>
+                    ) : (
+                      <span className="text-surface-500">Take a snapshot to track changes over time</span>
+                    )}
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-surface-800/60 border border-surface-700/40 flex items-center justify-center">
+                  <Wallet size={18} className="text-surface-400" />
                 </div>
               </div>
-              <Wallet size={18} className="text-surface-500 mt-1" />
-            </div>
 
-            {/* Breakdown strip */}
-            <div className="grid grid-cols-4 gap-3 mt-5 pt-4 border-t border-surface-700/60">
-              <div>
-                <p className="text-[10px] text-surface-500 uppercase tracking-wide">Assets</p>
-                <p className="text-sm font-mono font-semibold text-green-400 mt-0.5">{fmt(totalAssets)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-surface-500 uppercase tracking-wide">Liabilities</p>
-                <p className="text-sm font-mono font-semibold text-red-400 mt-0.5">{fmt(totalLiabilities)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-surface-500 uppercase tracking-wide">Investments</p>
-                <p className="text-sm font-mono font-semibold text-blue-400 mt-0.5">{fmt(investments)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-surface-500 uppercase tracking-wide">Real Estate</p>
-                <p className="text-sm font-mono font-semibold text-purple-400 mt-0.5">{fmt(realEstate)}</p>
+              {/* Breakdown strip */}
+              <div className="grid grid-cols-4 gap-4 mt-6 pt-5 border-t border-surface-700/40">
+                <div>
+                  <p className="text-[10px] text-surface-500 uppercase tracking-wide font-medium">Assets</p>
+                  <p className="text-sm font-mono font-semibold text-emerald-400 mt-1">{fmt(totalAssets)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-surface-500 uppercase tracking-wide font-medium">Liabilities</p>
+                  <p className="text-sm font-mono font-semibold text-red-400 mt-1">{fmt(totalLiabilities)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-surface-500 uppercase tracking-wide font-medium">Investments</p>
+                  <p className="text-sm font-mono font-semibold text-blue-400 mt-1">{fmt(investments)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-surface-500 uppercase tracking-wide font-medium">Real Estate</p>
+                  <p className="text-sm font-mono font-semibold text-violet-400 mt-1">{fmt(realEstate)}</p>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Liquid Cash */}
-          <div className="card p-5 flex flex-col justify-between">
-            <div>
+          <div className="card p-5 flex flex-col justify-between relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+            <div className="relative">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-surface-400 uppercase tracking-widest">Liquid Cash</p>
-                <Banknote size={15} className="text-surface-500" />
+                <p className="text-[11px] text-surface-400 uppercase tracking-[0.15em] font-semibold">Liquid Cash</p>
+                <div className="w-8 h-8 rounded-lg bg-surface-800/60 border border-surface-700/40 flex items-center justify-center">
+                  <Banknote size={15} className="text-surface-400" />
+                </div>
               </div>
-              <p className="text-2xl font-bold font-mono mt-2 text-green-400">{fmt(liquidCash)}</p>
+              <p className="text-2xl font-bold font-mono mt-2 text-emerald-400">{fmt(liquidCash)}</p>
             </div>
-            <div className="mt-4 pt-4 border-t border-surface-700/60 text-xs space-y-1.5">
+            <div className="mt-4 pt-4 border-t border-surface-700/40 text-xs space-y-2 relative">
               <div className="flex justify-between">
                 <span className="text-surface-500">Emergency runway</span>
-                <span className={`font-semibold ${runwayMonths >= 3 ? 'text-green-400' : runwayMonths >= 1 ? 'text-amber-400' : 'text-red-400'}`}>
+                <span className={`font-semibold ${runwayMonths >= 3 ? 'text-emerald-400' : runwayMonths >= 1 ? 'text-amber-400' : 'text-red-400'}`}>
                   {runwayMonths > 0 ? `${runwayMonths.toFixed(1)} mo` : '—'}
                 </span>
               </div>
@@ -589,23 +601,26 @@ export default function Dashboard() {
           </div>
 
           {/* Period Summary */}
-          <div className="card p-5 flex flex-col justify-between">
-            <div>
+          <div className="card p-5 flex flex-col justify-between relative overflow-hidden">
+            <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 ${netThis >= 0 ? 'bg-emerald-500/5' : 'bg-red-500/5'}`} />
+            <div className="relative">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-surface-400 uppercase tracking-widest">
+                <p className="text-[11px] text-surface-400 uppercase tracking-[0.15em] font-semibold">
                   {PERIOD_LABELS[period]}
                 </p>
-                <Calendar size={15} className="text-surface-500" />
+                <div className="w-8 h-8 rounded-lg bg-surface-800/60 border border-surface-700/40 flex items-center justify-center">
+                  <Calendar size={15} className="text-surface-400" />
+                </div>
               </div>
-              <p className={`text-2xl font-bold font-mono mt-2 ${netThis >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`text-2xl font-bold font-mono mt-2 ${netThis >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {netThis >= 0 ? '+' : ''}{fmt(netThis)}
               </p>
               <p className="text-[10px] text-surface-500 mt-0.5">Net cash retained</p>
             </div>
-            <div className="mt-4 pt-4 border-t border-surface-700/60 text-xs space-y-1.5">
+            <div className="mt-4 pt-4 border-t border-surface-700/40 text-xs space-y-2 relative">
               <div className="flex justify-between">
                 <span className="text-surface-500">Income</span>
-                <span className="font-mono text-green-400">{fmt(incomeThis)}</span>
+                <span className="font-mono text-emerald-400">{fmt(incomeThis)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-surface-500">Expenses</span>
@@ -613,7 +628,7 @@ export default function Dashboard() {
               </div>
               <div className="flex justify-between">
                 <span className="text-surface-500">Savings rate</span>
-                <span className={`font-semibold ${savingsRate >= 20 ? 'text-green-400' : savingsRate >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
+                <span className={`font-semibold ${savingsRate >= 20 ? 'text-emerald-400' : savingsRate >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
                   {incomeThis > 0 ? `${savingsRate.toFixed(1)}%` : '—'}
                 </span>
               </div>
@@ -635,27 +650,28 @@ export default function Dashboard() {
 
           {/* Cash flow bar chart */}
           <div className="card col-span-2 flex flex-col" style={{ minHeight: 320 }}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-surface-200">Last 12 months</p>
-              <div className="flex items-center gap-3 text-xs text-surface-400">
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-green-500/80"/>Income</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-red-500/80"/>Expenses</span>
-                <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-blue-400"/>Net</span>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-semibold text-surface-200">Last 12 months</p>
+              <div className="flex items-center gap-3 text-[11px] text-surface-500">
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500"/>Income</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500"/>Expenses</span>
+                <span className="flex items-center gap-1.5"><span className="w-3.5 h-0.5 rounded bg-blue-400"/>Net</span>
               </div>
             </div>
             {eligible.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={cashFlow12} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                  <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-                  <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                  <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} tickFormatter={v => fmtCompact(v)} width={72} />
+                  <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+                  <XAxis dataKey="month" stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <YAxis stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => fmtCompact(v)} width={72} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: '#1e293b', border: '1px solid #334155', fontSize: 12 }}
-                    labelStyle={{ color: '#f1f5f9' }}
+                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+                    labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}
                     formatter={(v: number) => fmt(v)}
+                    cursor={{ fill: 'rgba(59,130,246,0.05)' }}
                   />
-                  <Bar dataKey="income" fill="#22c55e" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="expenses" fill="#ef4444" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
                   <Line type="monotone" dataKey="net" stroke="#3b82f6" strokeWidth={2} dot={false} />
                 </BarChart>
               </ResponsiveContainer>
@@ -665,47 +681,56 @@ export default function Dashboard() {
           </div>
 
           {/* Spending by category — pie + list stacked */}
-          <div className="card flex flex-col" style={{ minHeight: 320 }}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-surface-200">Spending</p>
-              <span className="text-xs text-surface-400">{PERIOD_LABELS[period].toLowerCase()}</span>
+          <div className="card flex flex-col relative overflow-hidden" style={{ minHeight: 320 }}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+            <div className="relative flex flex-col flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-semibold text-surface-200">Spending</p>
+                <span className="text-[10px] text-surface-500 uppercase tracking-wide font-medium">{PERIOD_LABELS[period].toLowerCase()}</span>
+              </div>
+              {spendByCategory.length > 0 ? (
+                <>
+                  <p className="text-2xl font-bold font-mono text-surface-100 mb-1">{fmt(totalSpendThis)}</p>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <PieChart>
+                      <Pie data={spendByCategory} dataKey="value" nameKey="name" innerRadius={38} outerRadius={62} paddingAngle={2}>
+                        {spendByCategory.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="#0f172a" strokeWidth={2} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+                        formatter={(v: number) => fmt(v)}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="mt-2 space-y-2 flex-1 overflow-y-auto">
+                    {spendByCategory.slice(0, 6).map((c, i) => {
+                      const pct = totalSpendThis > 0 ? (c.value / totalSpendThis) * 100 : 0
+                      return (
+                        <div key={c.name}>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="flex items-center gap-2 min-w-0">
+                              <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ background: COLORS[i % COLORS.length] }} />
+                              <span className="truncate text-surface-300">{c.name}</span>
+                            </span>
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              <span className="font-mono text-surface-400 text-[11px]">{fmt(c.value)}</span>
+                              <span className="text-[10px] text-surface-500 w-8 text-right">{pct.toFixed(0)}%</span>
+                            </div>
+                          </div>
+                          <div className="h-1 mt-1 bg-surface-800/80 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: COLORS[i % COLORS.length] }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              ) : (
+                <EmptyChart hint={`No expenses in ${PERIOD_LABELS[period].toLowerCase()}.`} />
+              )}
             </div>
-            {spendByCategory.length > 0 ? (
-              <>
-                <p className="text-xl font-bold font-mono text-surface-100 mb-1">{fmt(totalSpendThis)}</p>
-                <ResponsiveContainer width="100%" height={140}>
-                  <PieChart>
-                    <Pie data={spendByCategory} dataKey="value" nameKey="name" innerRadius={38} outerRadius={62} paddingAngle={1}>
-                      {spendByCategory.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="#0f172a" strokeWidth={1} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', fontSize: 12 }} formatter={(v: number) => fmt(v)} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-2 space-y-1.5 flex-1 overflow-y-auto">
-                  {spendByCategory.slice(0, 6).map((c, i) => {
-                    const pct = totalSpendThis > 0 ? (c.value / totalSpendThis) * 100 : 0
-                    return (
-                      <div key={c.name}>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-1.5 min-w-0">
-                            <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                            <span className="truncate text-surface-300">{c.name}</span>
-                          </span>
-                          <span className="font-mono text-surface-400 shrink-0 ml-2 text-[11px]">{fmt(c.value)}</span>
-                        </div>
-                        <div className="h-1 mt-0.5 bg-surface-800 rounded overflow-hidden">
-                          <div className="h-full rounded" style={{ width: `${pct}%`, background: COLORS[i % COLORS.length] }} />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </>
-            ) : (
-              <EmptyChart hint={`No expenses in ${PERIOD_LABELS[period].toLowerCase()}.`} />
-            )}
           </div>
         </div>
       </section>
@@ -716,77 +741,86 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-4">
 
           {/* Net worth trend */}
-          <div className="card col-span-2 flex flex-col" style={{ minHeight: 280 }}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-surface-200">Net Worth Trend</p>
-              {isDerived && (
-                <span className="text-[10px] text-surface-500 italic">estimated — take snapshots for accuracy</span>
+          <div className="card col-span-2 flex flex-col relative overflow-hidden" style={{ minHeight: 280 }}>
+            <div className="absolute top-0 left-0 w-40 h-40 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 -translate-x-1/4" />
+            <div className="relative flex flex-col flex-1">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-semibold text-surface-200">Net Worth Trend</p>
+                {isDerived && (
+                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-surface-800/60 border border-surface-700/40 text-surface-500 italic">estimated — take snapshots for accuracy</span>
+                )}
+              </div>
+              {netWorthSeries.length >= 2 ? (
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={netWorthSeries} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                    <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+                    <XAxis dataKey="date" stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => v.slice(0, 7)} axisLine={false} tickLine={false} />
+                    <YAxis stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => fmtCompact(v)} width={72} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+                      labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}
+                      formatter={(v: number) => [fmt(v), 'Net Worth']}
+                      cursor={{ stroke: 'rgba(99,102,241,0.2)', strokeWidth: 1 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="netWorth"
+                      stroke={isDerived ? '#6366f1' : '#3b82f6'}
+                      strokeWidth={2.5}
+                      strokeDasharray={isDerived ? '4 2' : undefined}
+                      dot={{ r: 3, strokeWidth: 2, fill: '#0f172a' }}
+                      activeDot={{ r: 5, strokeWidth: 2, fill: isDerived ? '#6366f1' : '#3b82f6' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center px-4 gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-surface-800/60 border border-surface-700/40 flex items-center justify-center mb-1">
+                    <TrendingUp size={20} className="text-surface-500" />
+                  </div>
+                  <p className="text-surface-500 text-sm">Add transactions to see a trend, or take a manual snapshot.</p>
+                  <button
+                    onClick={async () => {
+                      await api.post('/accounts/snapshots')
+                      const s = await api.get<Snapshot[]>('/accounts/snapshots')
+                      setSnapshots(s)
+                    }}
+                    className="btn-primary text-xs"
+                  >
+                    Take snapshot now
+                  </button>
+                </div>
               )}
             </div>
-            {netWorthSeries.length >= 2 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={netWorthSeries} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                  <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-                  <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 10 }} tickFormatter={v => v.slice(0, 7)} />
-                  <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} tickFormatter={v => fmtCompact(v)} width={72} />
-                  <Tooltip
-                    contentStyle={{ background: '#1e293b', border: '1px solid #334155', fontSize: 12 }}
-                    formatter={(v: number) => [fmt(v), 'Net Worth']}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="netWorth"
-                    stroke={isDerived ? '#6366f1' : '#3b82f6'}
-                    strokeWidth={2.5}
-                    strokeDasharray={isDerived ? '4 2' : undefined}
-                    dot={{ r: 3 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-4 gap-3">
-                <p className="text-surface-500 text-sm">Add transactions to see a trend, or take a manual snapshot.</p>
-                <button
-                  onClick={async () => {
-                    await api.post('/accounts/snapshots')
-                    const s = await api.get<Snapshot[]>('/accounts/snapshots')
-                    setSnapshots(s)
-                  }}
-                  className="btn-primary text-xs"
-                >
-                  Take snapshot now
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Recent activity */}
           <div className="card flex flex-col">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-surface-200">Recent Activity</p>
-              <a href="/transactions" className="text-xs text-blue-400 hover:underline">View all</a>
+              <p className="text-sm font-semibold text-surface-200">Recent Activity</p>
+              <a href="/transactions" className="text-[11px] text-blue-400 hover:text-blue-300 transition-colors font-medium">View all →</a>
             </div>
             {recent.length > 0 ? (
-              <div className="divide-y divide-surface-800/70 flex-1">
+              <div className="flex-1 space-y-0.5">
                 {recent.map(tx => (
-                  <div key={tx.id} className="flex items-center justify-between py-2 text-xs">
+                  <div key={tx.id} className="flex items-center justify-between py-2.5 px-2 -mx-2 rounded-lg hover:bg-surface-800/40 transition-colors text-xs group">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-surface-200 font-medium" title={tx.description}>{tx.description}</p>
+                      <p className="truncate text-surface-200 font-medium group-hover:text-surface-100 transition-colors" title={tx.description}>{tx.description}</p>
                       <p className="text-surface-500 text-[10px] mt-0.5">
-                        {shortDate(tx.date)} · {accountName(tx.account_id)}
+                        {shortDate(tx.date)} <span className="text-surface-600">·</span> {accountName(tx.account_id)}
+                        {tx.category_id && (
+                          <> <span className="text-surface-600">·</span> <span className="text-surface-600">{catName(tx.category_id)}</span></>
+                        )}
                       </p>
-                      {tx.category_id && (
-                        <p className="text-surface-600 text-[10px]">{catName(tx.category_id)}</p>
-                      )}
                     </div>
-                    <span className={`font-mono shrink-0 ml-3 text-[11px] font-semibold ${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <span className={`font-mono shrink-0 ml-3 text-[11px] font-semibold ${tx.amount >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-surface-500 text-sm">No transactions yet.</p>
+              <EmptyChart hint="No transactions yet." />
             )}
           </div>
         </div>
@@ -797,114 +831,118 @@ export default function Dashboard() {
         <section className="space-y-4">
           <SectionLabel>Account Balance History · 12 months</SectionLabel>
 
-          <div className="card p-5">
-            {/* Controls row */}
-            <div className="flex items-center justify-between mb-4">
-              {/* Filter tabs */}
-              <div className="flex gap-1 bg-surface-800 rounded-lg p-1">
-                {(['all', 'liquid', 'investments', 'debts'] as const).map(f => (
-                  <button
-                    key={f}
-                    onClick={() => setAcctFilter(f)}
-                    className={`px-3 py-1 text-xs rounded-md transition-colors font-medium ${
-                      acctFilter === f
-                        ? 'bg-surface-600 text-white shadow-sm'
-                        : 'text-surface-400 hover:text-surface-200'
-                    }`}
-                  >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                ))}
+          <div className="card p-5 relative overflow-hidden">
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/3 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
+            <div className="relative">
+              {/* Controls row */}
+              <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                {/* Filter tabs */}
+                <div className="flex gap-0.5 bg-surface-800/80 rounded-xl p-1 border border-surface-700/30">
+                  {(['all', 'liquid', 'investments', 'debts'] as const).map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setAcctFilter(f)}
+                      className={`px-3.5 py-1.5 text-[11px] rounded-lg transition-all duration-200 font-medium ${
+                        acctFilter === f
+                          ? 'bg-blue-500/15 text-blue-400 shadow-sm shadow-blue-500/10'
+                          : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700/40'
+                      }`}
+                    >
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 12-month summary pills */}
+                {annualKPIs && (
+                  <div className="flex gap-2 flex-wrap">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border ${annualKPIs.debtPaidOff >= 0 ? 'bg-emerald-500/8 text-emerald-400 border-emerald-500/15' : 'bg-red-500/8 text-red-400 border-red-500/15'}`}>
+                      <TrendingDown size={11} />
+                      <span className="text-surface-500">Debt:</span>
+                      {annualKPIs.debtPaidOff >= 0 ? `−${fmt(annualKPIs.debtPaidOff)}` : `+${fmt(Math.abs(annualKPIs.debtPaidOff))}`}
+                    </div>
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border ${annualKPIs.investGrowth >= 0 ? 'bg-blue-500/8 text-blue-400 border-blue-500/15' : 'bg-red-500/8 text-red-400 border-red-500/15'}`}>
+                      <TrendingUp size={11} />
+                      <span className="text-surface-500">Investments:</span>
+                      {annualKPIs.investGrowth >= 0 ? '+' : ''}{fmt(annualKPIs.investGrowth)}
+                    </div>
+                    {annualKPIs.avgMonthlySavings > 0 && (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-800/60 border border-surface-700/30 text-[11px] text-surface-300 font-medium">
+                        <Percent size={11} className="text-surface-500" />
+                        <span className="text-surface-500">Avg surplus/mo:</span>
+                        {fmt(annualKPIs.avgMonthlySavings)}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* 12-month summary pills */}
-              {annualKPIs && (
-                <div className="flex gap-2 flex-wrap">
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${annualKPIs.debtPaidOff >= 0 ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
-                    <TrendingDown size={11} />
-                    <span className="text-surface-400">Debt:</span>
-                    {annualKPIs.debtPaidOff >= 0 ? `−${fmt(annualKPIs.debtPaidOff)}` : `+${fmt(Math.abs(annualKPIs.debtPaidOff))}`}
-                  </div>
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${annualKPIs.investGrowth >= 0 ? 'bg-blue-900/30 text-blue-400' : 'bg-red-900/30 text-red-400'}`}>
-                    <TrendingUp size={11} />
-                    <span className="text-surface-400">Investments:</span>
-                    {annualKPIs.investGrowth >= 0 ? '+' : ''}{fmt(annualKPIs.investGrowth)}
-                  </div>
-                  {annualKPIs.avgMonthlySavings > 0 && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-700/50 text-xs text-surface-300 font-medium">
-                      <Percent size={11} />
-                      <span className="text-surface-400">Avg surplus/mo:</span>
-                      {fmt(annualKPIs.avgMonthlySavings)}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Line chart */}
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={accountBalanceSeries} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-                <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} tickFormatter={v => fmtCompact(v)} width={72} />
-                <Tooltip
-                  contentStyle={{ background: '#1e293b', border: '1px solid #334155', fontSize: 12 }}
-                  formatter={(v: number, name: string) => [fmt(v), name]}
-                />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                {filteredAccounts.map((a, i) => (
-                  <Line
-                    key={a.id}
-                    type="monotone"
-                    dataKey={`a_${a.id}`}
-                    name={a.name}
-                    stroke={COLORS[i % COLORS.length]}
-                    strokeWidth={2}
-                    dot={false}
-                    strokeDasharray={!a.is_asset ? '4 2' : undefined}
+              {/* Line chart */}
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={accountBalanceSeries} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+                  <XAxis dataKey="date" stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <YAxis stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => fmtCompact(v)} width={72} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+                    labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}
+                    formatter={(v: number, name: string) => [fmt(v), name]}
                   />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-
-            {/* Month-over-month change table */}
-            <div className="mt-6 overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-left text-surface-500 border-b border-surface-700">
-                    <th className="pb-2.5 font-medium">Account</th>
-                    <th className="pb-2.5 font-medium text-right">Current Balance</th>
-                    <th className="pb-2.5 font-medium text-right">vs Last Month</th>
-                    <th className="pb-2.5 font-medium text-right">vs 3 Months Ago</th>
-                    <th className="pb-2.5 font-medium text-right">12-Month Change</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-800/60">
-                  {acctChanges.filter(r =>
-                    acctFilter === 'all' ? true :
-                    acctFilter === 'liquid' ? LIQUID_TYPES.has(r.acct.type) :
-                    acctFilter === 'investments' ? ['tfsa', 'rrsp', 'fhsa', 'non_registered', 'crypto'].includes(r.acct.type) :
-                    !r.acct.is_asset
-                  ).map(({ acct, current, mom, qtr, yoy }) => (
-                    <tr key={acct.id} className="hover:bg-surface-800/30 transition-colors">
-                      <td className="py-2.5">
-                        <p className="font-medium text-surface-200">{acct.name}</p>
-                        <p className="text-[10px] text-surface-500 uppercase tracking-wide mt-0.5">{acct.type.replace(/_/g, ' ')}</p>
-                      </td>
-                      <td className="py-2.5 text-right font-mono font-semibold text-surface-100">{fmt(current)}</td>
-                      <td className={`py-2.5 text-right font-mono ${mom === 0 ? 'text-surface-500' : mom > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {mom === 0 ? '—' : `${mom > 0 ? '+' : ''}${fmt(mom)}`}
-                      </td>
-                      <td className={`py-2.5 text-right font-mono ${qtr === 0 ? 'text-surface-500' : qtr > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {qtr === 0 ? '—' : `${qtr > 0 ? '+' : ''}${fmt(qtr)}`}
-                      </td>
-                      <td className={`py-2.5 text-right font-mono font-semibold ${yoy === 0 ? 'text-surface-500' : yoy > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {yoy === 0 ? '—' : `${yoy > 0 ? '+' : ''}${fmt(yoy)}`}
-                      </td>
-                    </tr>
+                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                  {filteredAccounts.map((a, i) => (
+                    <Line
+                      key={a.id}
+                      type="monotone"
+                      dataKey={`a_${a.id}`}
+                      name={a.name}
+                      stroke={COLORS[i % COLORS.length]}
+                      strokeWidth={2}
+                      dot={false}
+                      strokeDasharray={!a.is_asset ? '4 2' : undefined}
+                    />
                   ))}
-                </tbody>
-              </table>
+                </LineChart>
+              </ResponsiveContainer>
+
+              {/* Month-over-month change table */}
+              <div className="mt-6 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-surface-500 border-b border-surface-700/40">
+                      <th className="pb-3 font-semibold text-[10px] uppercase tracking-wider">Account</th>
+                      <th className="pb-3 font-semibold text-[10px] uppercase tracking-wider text-right">Balance</th>
+                      <th className="pb-3 font-semibold text-[10px] uppercase tracking-wider text-right">vs Last Month</th>
+                      <th className="pb-3 font-semibold text-[10px] uppercase tracking-wider text-right">vs 3 Mo Ago</th>
+                      <th className="pb-3 font-semibold text-[10px] uppercase tracking-wider text-right">12-Mo Change</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-surface-800/40">
+                    {acctChanges.filter(r =>
+                      acctFilter === 'all' ? true :
+                      acctFilter === 'liquid' ? LIQUID_TYPES.has(r.acct.type) :
+                      acctFilter === 'investments' ? ['tfsa', 'rrsp', 'fhsa', 'non_registered', 'crypto'].includes(r.acct.type) :
+                      !r.acct.is_asset
+                    ).map(({ acct, current, mom, qtr, yoy }) => (
+                      <tr key={acct.id} className="hover:bg-surface-800/30 transition-colors group">
+                        <td className="py-3">
+                          <p className="font-medium text-surface-200 group-hover:text-surface-100 transition-colors">{acct.name}</p>
+                          <p className="text-[10px] text-surface-500 uppercase tracking-wide mt-0.5">{acct.type.replace(/_/g, ' ')}</p>
+                        </td>
+                        <td className="py-3 text-right font-mono font-semibold text-surface-100">{fmt(current)}</td>
+                        <td className={`py-3 text-right font-mono ${mom === 0 ? 'text-surface-600' : mom > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {mom === 0 ? '—' : `${mom > 0 ? '+' : ''}${fmt(mom)}`}
+                        </td>
+                        <td className={`py-3 text-right font-mono ${qtr === 0 ? 'text-surface-600' : qtr > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {qtr === 0 ? '—' : `${qtr > 0 ? '+' : ''}${fmt(qtr)}`}
+                        </td>
+                        <td className={`py-3 text-right font-mono font-semibold ${yoy === 0 ? 'text-surface-600' : yoy > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {yoy === 0 ? '—' : `${yoy > 0 ? '+' : ''}${fmt(yoy)}`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -917,14 +955,17 @@ export default function Dashboard() {
         </SectionLabel>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {accounts.map(a => (
-            <div key={a.id} className="card p-4 flex items-center justify-between hover:bg-surface-700/40 transition-colors">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-surface-200 font-medium text-sm">{a.name}</p>
-                <p className="text-surface-500 text-[11px] uppercase tracking-wide mt-0.5">{a.type.replace(/_/g, ' ')}</p>
+            <div key={a.id} className="card p-4 group cursor-default">
+              <div className="flex items-start justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] text-surface-500 uppercase tracking-wider font-medium">{a.type.replace(/_/g, ' ')}</p>
+                  <p className="truncate text-surface-200 font-medium text-sm mt-1 group-hover:text-surface-100 transition-colors">{a.name}</p>
+                </div>
+                <div className={`w-2 h-2 rounded-full mt-1 shrink-0 ${a.is_asset ? 'bg-emerald-500/60' : 'bg-red-500/60'}`} />
               </div>
-              <span className={`font-mono font-semibold shrink-0 ml-3 text-sm ${a.current_balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`font-mono font-bold text-lg mt-3 ${a.current_balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {fmt(a.current_balance)}
-              </span>
+              </p>
             </div>
           ))}
         </div>
@@ -935,8 +976,11 @@ export default function Dashboard() {
 
 function EmptyChart({ hint }: { hint: string }) {
   return (
-    <div className="flex-1 flex items-center justify-center text-surface-500 text-sm text-center px-4">
-      {hint}
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-8 gap-2">
+      <div className="w-10 h-10 rounded-xl bg-surface-800/60 border border-surface-700/40 flex items-center justify-center mb-1">
+        <Wallet size={16} className="text-surface-500" />
+      </div>
+      <p className="text-surface-500 text-sm">{hint}</p>
     </div>
   )
 }
@@ -944,8 +988,8 @@ function EmptyChart({ hint }: { hint: string }) {
 function SectionLabel({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-4">
-      <span className="text-xs font-semibold uppercase tracking-widest text-surface-400 whitespace-nowrap">{children}</span>
-      <div className="flex-1 h-px bg-surface-700/50" />
+      <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-surface-400/80 whitespace-nowrap">{children}</span>
+      <div className="flex-1 h-px bg-gradient-to-r from-surface-700/50 to-transparent" />
       {action && <div className="shrink-0">{action}</div>}
     </div>
   )
