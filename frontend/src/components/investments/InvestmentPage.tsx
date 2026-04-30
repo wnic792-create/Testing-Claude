@@ -129,7 +129,7 @@ export default function InvestmentPage() {
 
       {/* Add Holding Form */}
       {showForm && (
-        <div className="card p-5 border-blue-500/20">
+        <div className="card p-5 border-surface-700">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-semibold text-surface-200">Add Investment Holding</p>
             <button onClick={resetForm} className="text-surface-500 hover:text-surface-300"><X size={16} /></button>
@@ -157,7 +157,7 @@ export default function InvestmentPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-xs font-mono text-blue-400 mr-2">{f.code}</span>
+                        <span className="text-xs font-mono text-accent mr-2">{f.code}</span>
                         <span className="text-xs text-surface-200">{f.name}</span>
                       </div>
                       <span className="text-[10px] text-surface-500">{f.category}</span>
@@ -171,21 +171,21 @@ export default function InvestmentPage() {
 
           {/* Selected fund info */}
           {selectedFund && (
-            <div className="mb-4 p-3 rounded-lg bg-blue-500/5 border border-blue-500/15">
+            <div className="mb-4 p-3 rounded-lg bg-accent/5 border border-accent/15">
               <div className="flex items-center gap-2 mb-2">
-                <Info size={13} className="text-blue-400" />
-                <span className="text-xs font-semibold text-blue-300">{selectedFund.name}</span>
+                <Info size={13} className="text-accent" />
+                <span className="text-xs font-semibold text-accent">{selectedFund.name}</span>
                 <span className="text-[10px] text-surface-500 ml-auto">MER: {selectedFund.mer}%</span>
               </div>
               <div className="flex gap-0.5 h-4 rounded-full overflow-hidden mb-2">
                 {Object.entries(selectedFund.allocation).map(([k, v]) => (
-                  <div key={k} title={`${REGION_LABELS[k] || k}: ${v}%`} className="h-full" style={{ width: `${v}%`, background: REGION_COLORS[k] || '#64748b' }} />
+                  <div key={k} title={`${REGION_LABELS[k] || k}: ${v}%`} className="h-full" style={{ width: `${v}%`, background: REGION_COLORS[k] || '#525252' }} />
                 ))}
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
                 {Object.entries(selectedFund.allocation).map(([k, v]) => (
                   <span key={k} className="text-[10px] text-surface-400 flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full" style={{ background: REGION_COLORS[k] || '#64748b' }} />
+                    <span className="w-2 h-2 rounded-full" style={{ background: REGION_COLORS[k] || '#525252' }} />
                     {REGION_LABELS[k] || k}: {v}%
                   </span>
                 ))}
@@ -236,24 +236,21 @@ export default function InvestmentPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="card p-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+        <div className="card p-5 ">
           <p className="text-[11px] text-surface-400 uppercase tracking-[0.15em] font-semibold">Total Portfolio</p>
           <p className="text-3xl font-bold font-mono mt-2 tracking-tight">{fmt(totalValue)}</p>
           <p className="text-xs text-surface-500 mt-1">{holdings.length} holding{holdings.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="card p-5 relative overflow-hidden">
-          <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 ${totalGain >= 0 ? 'bg-emerald-500/5' : 'bg-red-500/5'}`} />
           <p className="text-[11px] text-surface-400 uppercase tracking-[0.15em] font-semibold">Unrealized Gain/Loss</p>
-          <p className={`text-3xl font-bold font-mono mt-2 ${totalGain >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+          <p className={`text-3xl font-bold font-mono mt-2 ${totalGain >= 0 ? 'text-accent' : 'text-negative'}`}>
             {totalGain >= 0 ? '+' : ''}{fmt(totalGain)}
           </p>
-          <p className={`text-xs mt-1 ${totalGain >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+          <p className={`text-xs mt-1 ${totalGain >= 0 ? 'text-accent-600' : 'text-negative-light'}`}>
             {gainPct >= 0 ? '+' : ''}{gainPct.toFixed(1)}%
           </p>
         </div>
         <div className="card p-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
           <p className="text-[11px] text-surface-400 uppercase tracking-[0.15em] font-semibold">Book Value</p>
           <p className="text-3xl font-bold font-mono mt-2 text-surface-300">{fmt(totalBook)}</p>
           <p className="text-xs text-surface-500 mt-1">Cost basis</p>
@@ -305,7 +302,7 @@ export default function InvestmentPage() {
                       <td className="py-3 text-right font-mono font-semibold text-surface-100">
                         {fmt(h.market_value)}
                       </td>
-                      <td className={`py-3 text-right font-mono ${gain === 0 ? 'text-surface-500' : gain > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <td className={`py-3 text-right font-mono ${gain === 0 ? 'text-surface-500' : gain > 0 ? 'text-accent' : 'text-negative'}`}>
                         {h.book_value != null ? `${gain > 0 ? '+' : ''}${fmt(gain)}` : '—'}
                       </td>
                       <td className="py-3 pl-3">
@@ -316,7 +313,7 @@ export default function InvestmentPage() {
                                 key={k}
                                 title={`${REGION_LABELS[k] || k}: ${v}%`}
                                 className="h-full"
-                                style={{ width: `${v}%`, background: REGION_COLORS[k] || '#64748b' }}
+                                style={{ width: `${v}%`, background: REGION_COLORS[k] || '#525252' }}
                               />
                             ))}
                           </div>
@@ -327,7 +324,7 @@ export default function InvestmentPage() {
                       <td className="py-3">
                         <button
                           onClick={() => deleteHolding(h.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-surface-500 hover:text-red-400 transition-all"
+                          className="opacity-0 group-hover:opacity-100 p-1 text-surface-500 hover:text-negative transition-all"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -351,8 +348,7 @@ export default function InvestmentPage() {
       {lookthrough && lookthrough.total_value > 0 && (
         <div className="grid grid-cols-2 gap-4">
           {/* Geographic Allocation */}
-          <div className="card p-5 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 -translate-x-1/4" />
+          <div className="card p-5">
             <p className="text-sm font-semibold text-surface-200 mb-4 relative">Geographic Allocation</p>
             <div className="relative">
               <ResponsiveContainer width="100%" height={200}>
@@ -366,11 +362,11 @@ export default function InvestmentPage() {
                     paddingAngle={2}
                   >
                     {Object.entries(lookthrough.region_allocation).map(([k], i) => (
-                      <Cell key={i} fill={REGION_COLORS[k] || '#64748b'} stroke="#0f172a" strokeWidth={2} />
+                      <Cell key={i} fill={REGION_COLORS[k] || '#525252'} stroke="#111" strokeWidth={2} />
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+                    contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
                     formatter={(v: number) => `${v.toFixed(1)}%`}
                   />
                 </PieChart>
@@ -379,7 +375,7 @@ export default function InvestmentPage() {
                 {Object.entries(lookthrough.region_allocation).map(([k, v]) => (
                   <div key={k} className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: REGION_COLORS[k] || '#64748b' }} />
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: REGION_COLORS[k] || '#525252' }} />
                       <span className="text-surface-300">{REGION_LABELS[k] || k}</span>
                     </span>
                     <div className="flex items-center gap-3">
@@ -393,8 +389,7 @@ export default function InvestmentPage() {
           </div>
 
           {/* Sector Allocation */}
-          <div className="card p-5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+          <div className="card p-5">
             <p className="text-sm font-semibold text-surface-200 mb-4 relative">Sector Breakdown</p>
             <div className="relative">
               {Object.keys(lookthrough.sector_allocation).length > 0 ? (
@@ -442,7 +437,7 @@ export default function InvestmentPage() {
                   </div>
                   <div className="flex gap-0.5 h-3 rounded-full overflow-hidden mb-2">
                     {Object.entries(alloc).map(([k, v]) => (
-                      <div key={k} title={`${REGION_LABELS[k] || k}: ${v}%`} className="h-full" style={{ width: `${v}%`, background: REGION_COLORS[k] || '#64748b' }} />
+                      <div key={k} title={`${REGION_LABELS[k] || k}: ${v}%`} className="h-full" style={{ width: `${v}%`, background: REGION_COLORS[k] || '#525252' }} />
                     ))}
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5">

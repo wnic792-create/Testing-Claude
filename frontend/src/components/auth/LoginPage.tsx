@@ -50,32 +50,27 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-surface-950 flex items-center justify-center p-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl" />
-      </div>
-
-      <div className="w-full max-w-md relative">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 mx-auto mb-4">
-            <Wallet size={24} className="text-white" />
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-5">
+            <Wallet size={28} className="text-surface-950" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-surface-100">Local Finance</h1>
-          <p className="text-sm text-surface-500 mt-1">
-            {isRegister ? 'Create your account' : 'Sign in to your account'}
+          <h1 className="text-3xl font-bold tracking-tight text-white">Finance</h1>
+          <p className="text-sm text-surface-500 mt-2">
+            {isRegister ? 'Create your account' : 'Welcome back'}
           </p>
         </div>
 
-        <div className="card p-6">
+        <div className="bg-surface-900 border border-surface-800 rounded-2xl p-7">
           {error && (
-            <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div className="mb-5 px-4 py-3 rounded-xl bg-negative/10 border border-negative/20 text-negative text-sm">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="text-[11px] text-surface-400 uppercase tracking-wider font-semibold mb-1.5 block">
+              <label className="text-[12px] text-surface-400 font-medium mb-2 block">
                 Username
               </label>
               <input
@@ -91,7 +86,7 @@ export default function LoginPage() {
 
             {isRegister && (
               <div>
-                <label className="text-[11px] text-surface-400 uppercase tracking-wider font-semibold mb-1.5 block">
+                <label className="text-[12px] text-surface-400 font-medium mb-2 block">
                   Email
                 </label>
                 <input
@@ -107,7 +102,7 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="text-[11px] text-surface-400 uppercase tracking-wider font-semibold mb-1.5 block">
+              <label className="text-[12px] text-surface-400 font-medium mb-2 block">
                 Password
               </label>
               <div className="relative">
@@ -134,16 +129,16 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-2.5 disabled:opacity-50"
+              className="btn-primary w-full py-3 disabled:opacity-50"
             >
               {loading ? 'Please wait...' : isRegister ? 'Create Account' : 'Sign In'}
             </button>
           </form>
 
-          <div className="mt-5 pt-5 border-t border-surface-700/40 text-center">
+          <div className="mt-6 pt-6 border-t border-surface-800 text-center">
             <button
               onClick={() => { setIsRegister(!isRegister); setError('') }}
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+              className="text-sm text-surface-400 hover:text-white transition-colors"
             >
               {isRegister ? 'Already have an account? Sign in' : "Don't have an account? Register"}
             </button>

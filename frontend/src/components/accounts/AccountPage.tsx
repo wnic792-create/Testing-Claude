@@ -94,11 +94,11 @@ export default function AccountPage() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="card">
           <p className="text-xs text-surface-400 uppercase">Assets</p>
-          <p className="text-xl font-bold font-mono text-green-400 mt-1">{formatAmount(totalAssets, 'CAD')}</p>
+          <p className="text-xl font-bold font-mono text-accent mt-1">{formatAmount(totalAssets, 'CAD')}</p>
         </div>
         <div className="card">
           <p className="text-xs text-surface-400 uppercase">Liabilities</p>
-          <p className="text-xl font-bold font-mono text-red-400 mt-1">{formatAmount(totalLiabilities, 'CAD')}</p>
+          <p className="text-xl font-bold font-mono text-negative mt-1">{formatAmount(totalLiabilities, 'CAD')}</p>
         </div>
         <div className="card">
           <p className="text-xs text-surface-400 uppercase">{t('dashboard.netWorth')}</p>
@@ -169,17 +169,17 @@ export default function AccountPage() {
                 </p>
               </div>
               <div className="flex items-center gap-4">
-                <span className={`font-mono text-sm ${account.current_balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <span className={`font-mono text-sm ${account.current_balance >= 0 ? 'text-accent' : 'text-negative'}`}>
                   {formatAmount(account.current_balance, account.currency)}
                 </span>
                 <button
                   onClick={() => handleRecalculate(account)}
-                  className="text-surface-500 hover:text-blue-400"
+                  className="text-surface-500 hover:text-accent"
                   title="Recalculate balance from transactions"
                 >
                   <RefreshCw size={14} />
                 </button>
-                <button onClick={() => handleDelete(account.id)} className="text-surface-500 hover:text-red-400">
+                <button onClick={() => handleDelete(account.id)} className="text-surface-500 hover:text-negative">
                   <Trash2 size={14} />
                 </button>
               </div>
