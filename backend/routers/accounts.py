@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from typing import Optional
 from backend.database import get_db
 from backend.models.account import Account
+from backend.models.user import User
+from backend.dependencies import get_current_user, get_user_profile_ids
 from backend.services.snapshot_service import take_snapshot, get_snapshot_history
 from backend.services.account_balance import rebase_from_transactions
 
@@ -46,27 +48,27 @@ class AccountUpdate(BaseModel):
 
 
 @router.get("/")
-def list_accounts(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
-    query = db.query(Account)
+def list_accounts(profile_id: Optional[int] = None, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+    query = db.query(Account).filter(Account.profile_id.in_(pids))
     if profile_id is not None:
         query = query.filter(Account.profile_id == profile_id)
     return query.all()
 
 
 @router.get("/snapshots")
-def list_snapshots(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
-    """Get net worth snapshot history."""
+def list_snapshots(profile_id: Optional[int] = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return get_snapshot_history(db, profile_id=profile_id)
 
 
 @router.post("/snapshots", status_code=201)
-def create_snapshot(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
-    """Take a new net worth snapshot."""
+def create_snapshot(profile_id: Optional[int] = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return take_snapshot(db, profile_id=profile_id)
 
 
 @router.post("/", status_code=201)
-def create_account(account: AccountCreate, db: Session = Depends(get_db)):
+def create_account(account: AccountCreate, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+    if account.profile_id not in pids:
+        raise HTTPException(403, "Profile does not belong to you")
     db_account = Account(**account.model_dump())
     db.add(db_account)
     db.commit()
@@ -75,16 +77,16 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{account_id}")
-def get_account(account_id: int, db: Session = Depends(get_db)):
-    account = db.query(Account).filter(Account.id == account_id).first()
+def get_account(account_id: int, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+    account = db.query(Account).filter(Account.id == account_id, Account.profile_id.in_(pids)).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     return account
 
 
 @router.patch("/{account_id}")
-def update_account(account_id: int, updates: AccountUpdate, db: Session = Depends(get_db)):
-    account = db.query(Account).filter(Account.id == account_id).first()
+def update_account(account_id: int, updates: AccountUpdate, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+    account = db.query(Account).filter(Account.id == account_id, Account.profile_id.in_(pids)).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     for key, value in updates.model_dump(exclude_unset=True).items():
@@ -95,8 +97,8 @@ def update_account(account_id: int, updates: AccountUpdate, db: Session = Depend
 
 
 @router.delete("/{account_id}", status_code=204)
-def delete_account(account_id: int, db: Session = Depends(get_db)):
-    account = db.query(Account).filter(Account.id == account_id).first()
+def delete_account(account_id: int, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+    account = db.query(Account).filter(Account.id == account_id, Account.profile_id.in_(pids)).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     db.delete(account)
@@ -108,17 +110,8 @@ class RecalculateRequest(BaseModel):
 
 
 @router.post("/{account_id}/recalculate")
-def recalculate_balance(
-    account_id: int,
-    body: RecalculateRequest,
-    db: Session = Depends(get_db),
-):
-    """
-    Reset `current_balance` to `opening_balance + sum(transactions)`.
-    Useful to fix accounts whose balance drifted (e.g. transactions were added
-    before the balance-sync hooks existed).
-    """
-    account = db.query(Account).filter(Account.id == account_id).first()
+def recalculate_balance(account_id: int, body: RecalculateRequest, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+    account = db.query(Account).filter(Account.id == account_id, Account.profile_id.in_(pids)).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     new_balance = rebase_from_transactions(db, account_id, body.opening_balance)

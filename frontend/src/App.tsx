@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Layout from './components/layout/Layout'
 import Dashboard from './components/layout/Dashboard'
 import AccountPage from './components/accounts/AccountPage'
@@ -14,11 +15,28 @@ import RecurringPage from './components/recurring/RecurringPage'
 import ProfilePage from './components/profiles/ProfilePage'
 import InvestmentPage from './components/investments/InvestmentPage'
 import SettingsPage from './components/layout/SettingsPage'
+import LoginPage from './components/auth/LoginPage'
+import { useAuthStore } from './stores/auth'
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  const location = useLocation()
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+  return <>{children}</>
+}
 
 export default function App() {
+  const loadFromStorage = useAuthStore(s => s.loadFromStorage)
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+
+  useEffect(() => { loadFromStorage() }, [loadFromStorage])
+
   return (
     <Routes>
-      <Route path="/" element={<Layout />}>
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
         <Route index element={<Dashboard />} />
         <Route path="accounts" element={<AccountPage />} />
         <Route path="transactions" element={<TransactionPage />} />

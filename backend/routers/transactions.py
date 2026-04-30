@@ -5,6 +5,8 @@ from typing import Optional, List
 from backend.database import get_db
 from backend.models.transaction import Transaction
 from backend.models.account import Account
+from backend.models.user import User
+from backend.dependencies import get_current_user, get_user_profile_ids
 from backend.services.categorization import learn_from_correction, auto_categorize, categorize_batch
 from backend.services.recurring_detector import detect_recurring
 from backend.services import account_balance
@@ -64,10 +66,14 @@ def list_transactions(
     limit: int = Query(default=100, le=1000),
     offset: int = 0,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
 ):
-    query = db.query(Transaction)
+    query = db.query(Transaction).join(Account, Transaction.account_id == Account.id).filter(Account.profile_id.in_(pids))
     if profile_id is not None:
-        query = query.join(Account, Transaction.account_id == Account.id).filter(Account.profile_id == profile_id)
+        if profile_id not in pids:
+            raise HTTPException(status_code=403, detail="Access denied to this profile")
+        query = query.filter(Account.profile_id == profile_id)
     if account_id:
         query = query.filter(Transaction.account_id == account_id)
     if category_id:
@@ -86,7 +92,16 @@ def list_transactions(
 
 
 @router.post("/", status_code=201)
-def create_transaction(tx: TransactionCreate, db: Session = Depends(get_db)):
+def create_transaction(
+    tx: TransactionCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    # Verify the account belongs to the user
+    acct = db.query(Account).filter(Account.id == tx.account_id, Account.profile_id.in_(pids)).first()
+    if not acct:
+        raise HTTPException(status_code=403, detail="Access denied to this account")
     data = tx.model_dump()
     # Auto-categorize if no category was provided
     if data.get("category_id") is None:
@@ -104,28 +119,52 @@ def create_transaction(tx: TransactionCreate, db: Session = Depends(get_db)):
 def detect_recurring_transactions(
     account_id: Optional[int] = None,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
 ):
     """Detect potential recurring transactions (subscriptions)."""
+    if account_id:
+        acct = db.query(Account).filter(Account.id == account_id, Account.profile_id.in_(pids)).first()
+        if not acct:
+            raise HTTPException(status_code=403, detail="Access denied to this account")
     return detect_recurring(db, account_id)
 
 
 @router.post("/categorize-uncategorized")
-def categorize_uncategorized(db: Session = Depends(get_db)):
+def categorize_uncategorized(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
     """Run auto-categorization across all transactions that currently have no category."""
-    txs = db.query(Transaction).filter(Transaction.category_id.is_(None)).all()
+    txs = (
+        db.query(Transaction)
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(Account.profile_id.in_(pids), Transaction.category_id.is_(None))
+        .all()
+    )
     count = categorize_batch(db, txs)
     db.commit()
     return {"categorized": count, "checked": len(txs)}
 
 
 @router.post("/recategorize-all")
-def recategorize_all(db: Session = Depends(get_db)):
+def recategorize_all(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
     """
     Re-run categorization against every transaction using the current rules
     (ordered by priority desc). Overwrites existing categories — use when rule
     priorities change and you want them reflected across the full history.
     """
-    txs = db.query(Transaction).all()
+    txs = (
+        db.query(Transaction)
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(Account.profile_id.in_(pids))
+        .all()
+    )
     count = categorize_batch(db, txs, force=True)
     db.commit()
     return {"categorized": count, "checked": len(txs)}
@@ -138,9 +177,11 @@ def bulk_delete(
     date_to: Optional[str] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
 ):
     """Delete all transactions matching the given filters. Returns count deleted."""
-    query = db.query(Transaction)
+    query = db.query(Transaction).join(Account, Transaction.account_id == Account.id).filter(Account.profile_id.in_(pids))
     if account_id:
         query = query.filter(Transaction.account_id == account_id)
     if date_from:
@@ -160,12 +201,23 @@ def bulk_delete(
 
 
 @router.post("/transfer", status_code=201)
-def create_transfer(body: TransferCreate, db: Session = Depends(get_db)):
+def create_transfer(
+    body: TransferCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
     """
     Atomically create a linked pair of transactions representing an internal transfer.
     The outflow leg (negative amount) is booked against from_account_id and the
     inflow leg (positive amount) against to_account_id. Both share transfer_pair_id.
     """
+    # Verify both accounts belong to the user
+    from_acct = db.query(Account).filter(Account.id == body.from_account_id, Account.profile_id.in_(pids)).first()
+    to_acct = db.query(Account).filter(Account.id == body.to_account_id, Account.profile_id.in_(pids)).first()
+    if not from_acct or not to_acct:
+        raise HTTPException(status_code=403, detail="Access denied to one or both accounts")
+
     # Outflow from the source account
     out_tx = Transaction(
         account_id=body.from_account_id,
@@ -210,16 +262,37 @@ def create_transfer(body: TransferCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{tx_id}")
-def get_transaction(tx_id: int, db: Session = Depends(get_db)):
-    tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
+def get_transaction(
+    tx_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    tx = (
+        db.query(Transaction)
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(Transaction.id == tx_id, Account.profile_id.in_(pids))
+        .first()
+    )
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return tx
 
 
 @router.patch("/{tx_id}")
-def update_transaction(tx_id: int, updates: TransactionUpdate, db: Session = Depends(get_db)):
-    tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
+def update_transaction(
+    tx_id: int,
+    updates: TransactionUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    tx = (
+        db.query(Transaction)
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(Transaction.id == tx_id, Account.profile_id.in_(pids))
+        .first()
+    )
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
 
@@ -272,8 +345,18 @@ def update_transaction(tx_id: int, updates: TransactionUpdate, db: Session = Dep
 
 
 @router.delete("/{tx_id}", status_code=204)
-def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
-    tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
+def delete_transaction(
+    tx_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    tx = (
+        db.query(Transaction)
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(Transaction.id == tx_id, Account.profile_id.in_(pids))
+        .first()
+    )
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
 
@@ -292,8 +375,19 @@ def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{tx_id}/split")
-def split_transaction(tx_id: int, splits: List[SplitItem], db: Session = Depends(get_db)):
-    tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
+def split_transaction(
+    tx_id: int,
+    splits: List[SplitItem],
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    tx = (
+        db.query(Transaction)
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(Transaction.id == tx_id, Account.profile_id.in_(pids))
+        .first()
+    )
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
     tx.is_split = True

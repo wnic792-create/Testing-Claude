@@ -24,6 +24,7 @@ REQUIRED_COLUMNS: list[tuple[str, str, str]] = [
     ("budgets", "profile_id", "INTEGER DEFAULT 1"),
     ("net_worth_snapshots", "profile_id", "INTEGER"),
     ("recurring_transactions", "profile_id", "INTEGER DEFAULT 1"),
+    ("profiles", "user_id", "INTEGER"),
 ]
 
 

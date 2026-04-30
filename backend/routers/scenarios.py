@@ -9,6 +9,8 @@ from backend.models.forecast import (
     OneOffEvent, DebtAccount, CreditCardDebt, SavingsContribution,
     EmployerRRSPMatch,
 )
+from backend.models.user import User
+from backend.dependencies import get_current_user, get_user_profile_ids
 
 router = APIRouter()
 
@@ -27,20 +29,37 @@ class ScenarioUpdate(BaseModel):
 
 
 @router.get("/")
-def list_scenarios(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
-    query = db.query(Scenario)
+def list_scenarios(
+    profile_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    query = db.query(Scenario).filter(Scenario.profile_id.in_(pids))
     if profile_id is not None:
+        if profile_id not in pids:
+            raise HTTPException(status_code=403, detail="Access denied to this profile")
         query = query.filter(Scenario.profile_id == profile_id)
     return query.all()
 
 
 @router.get("/presets/stress-tests")
-def list_stress_test_presets(db: Session = Depends(get_db)):
+def list_stress_test_presets(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     return db.query(StressTestPreset).all()
 
 
 @router.post("/", status_code=201)
-def create_scenario(scenario: ScenarioCreate, db: Session = Depends(get_db)):
+def create_scenario(
+    scenario: ScenarioCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    if scenario.profile_id not in pids:
+        raise HTTPException(status_code=403, detail="Access denied to this profile")
     db_scenario = Scenario(**scenario.model_dump())
     db.add(db_scenario)
     db.commit()
@@ -53,16 +72,27 @@ def create_scenario(scenario: ScenarioCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{scenario_id}")
-def get_scenario(scenario_id: int, db: Session = Depends(get_db)):
-    scenario = db.query(Scenario).filter(Scenario.id == scenario_id).first()
+def get_scenario(
+    scenario_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    scenario = db.query(Scenario).filter(Scenario.id == scenario_id, Scenario.profile_id.in_(pids)).first()
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     return scenario
 
 
 @router.patch("/{scenario_id}")
-def update_scenario(scenario_id: int, updates: ScenarioUpdate, db: Session = Depends(get_db)):
-    scenario = db.query(Scenario).filter(Scenario.id == scenario_id).first()
+def update_scenario(
+    scenario_id: int,
+    updates: ScenarioUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    scenario = db.query(Scenario).filter(Scenario.id == scenario_id, Scenario.profile_id.in_(pids)).first()
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     for key, value in updates.model_dump(exclude_unset=True).items():
@@ -73,8 +103,13 @@ def update_scenario(scenario_id: int, updates: ScenarioUpdate, db: Session = Dep
 
 
 @router.delete("/{scenario_id}", status_code=204)
-def delete_scenario(scenario_id: int, db: Session = Depends(get_db)):
-    scenario = db.query(Scenario).filter(Scenario.id == scenario_id).first()
+def delete_scenario(
+    scenario_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    scenario = db.query(Scenario).filter(Scenario.id == scenario_id, Scenario.profile_id.in_(pids)).first()
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     # Cascade delete all related forecast data
@@ -91,8 +126,14 @@ def delete_scenario(scenario_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{scenario_id}/clone")
-def clone_scenario(scenario_id: int, name: Optional[str] = None, db: Session = Depends(get_db)):
-    original = db.query(Scenario).filter(Scenario.id == scenario_id).first()
+def clone_scenario(
+    scenario_id: int,
+    name: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    original = db.query(Scenario).filter(Scenario.id == scenario_id, Scenario.profile_id.in_(pids)).first()
     if not original:
         raise HTTPException(status_code=404, detail="Scenario not found")
 
@@ -196,6 +237,15 @@ def clone_scenario(scenario_id: int, name: Optional[str] = None, db: Session = D
 
 
 @router.post("/{scenario_id}/stress-test/{preset_id}")
-def apply_stress_test(scenario_id: int, preset_id: int, db: Session = Depends(get_db)):
+def apply_stress_test(
+    scenario_id: int,
+    preset_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    scenario = db.query(Scenario).filter(Scenario.id == scenario_id, Scenario.profile_id.in_(pids)).first()
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scenario not found")
     # TODO: clone scenario and apply preset modifiers
     return {"status": "not_implemented"}

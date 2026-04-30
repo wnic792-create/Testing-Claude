@@ -6,6 +6,8 @@ from backend.database import get_db
 from backend.models.category import Category, CategorizationRule
 from backend.models.transaction import Transaction
 from backend.services.transfer_pairing import backfill_transfers_for_category
+from backend.models.user import User
+from backend.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -41,7 +43,10 @@ class RuleUpdate(BaseModel):
 
 
 @router.get("/")
-def list_categories(db: Session = Depends(get_db)):
+def list_categories(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     cats = db.query(Category).all()
     # Build hierarchical structure
     cat_map = {}
@@ -71,12 +76,19 @@ def list_categories(db: Session = Depends(get_db)):
 
 
 @router.get("/flat")
-def list_categories_flat(db: Session = Depends(get_db)):
+def list_categories_flat(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     return db.query(Category).all()
 
 
 @router.post("/", status_code=201)
-def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+def create_category(
+    category: CategoryCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     db_cat = Category(**category.model_dump())
     db.add(db_cat)
     db.commit()
@@ -85,7 +97,12 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{category_id}")
-def update_category(category_id: int, updates: CategoryUpdate, db: Session = Depends(get_db)):
+def update_category(
+    category_id: int,
+    updates: CategoryUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     cat = db.query(Category).filter(Category.id == category_id).first()
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -97,7 +114,11 @@ def update_category(category_id: int, updates: CategoryUpdate, db: Session = Dep
 
 
 @router.get("/{category_id}/transfer-candidates")
-def count_transfer_candidates(category_id: int, db: Session = Depends(get_db)):
+def count_transfer_candidates(
+    category_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """
     Count existing single-leg outflow transactions in this category that could
     be retroactively converted into transfer pairs. Used by the UI to decide
@@ -120,7 +141,11 @@ def count_transfer_candidates(category_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{category_id}/apply-transfers")
-def apply_transfers(category_id: int, db: Session = Depends(get_db)):
+def apply_transfers(
+    category_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """
     Retroactively convert every eligible single-leg outflow in this category
     into a linked transfer pair, using the category's default destination
@@ -139,7 +164,11 @@ def apply_transfers(category_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{category_id}", status_code=204)
-def delete_category(category_id: int, db: Session = Depends(get_db)):
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     cat = db.query(Category).filter(Category.id == category_id).first()
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -152,12 +181,19 @@ def delete_category(category_id: int, db: Session = Depends(get_db)):
 # --- Categorization Rules ---
 
 @router.get("/rules")
-def list_rules(db: Session = Depends(get_db)):
+def list_rules(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     return db.query(CategorizationRule).order_by(CategorizationRule.priority.desc()).all()
 
 
 @router.post("/rules", status_code=201)
-def create_rule(rule: RuleCreate, db: Session = Depends(get_db)):
+def create_rule(
+    rule: RuleCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     db_rule = CategorizationRule(**rule.model_dump(), source="manual")
     db.add(db_rule)
     db.commit()
@@ -166,7 +202,12 @@ def create_rule(rule: RuleCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/rules/{rule_id}")
-def update_rule(rule_id: int, updates: RuleUpdate, db: Session = Depends(get_db)):
+def update_rule(
+    rule_id: int,
+    updates: RuleUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     rule = db.query(CategorizationRule).filter(CategorizationRule.id == rule_id).first()
     if not rule:
         raise HTTPException(status_code=404, detail="Rule not found")
@@ -178,7 +219,11 @@ def update_rule(rule_id: int, updates: RuleUpdate, db: Session = Depends(get_db)
 
 
 @router.delete("/rules/{rule_id}", status_code=204)
-def delete_rule(rule_id: int, db: Session = Depends(get_db)):
+def delete_rule(
+    rule_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     rule = db.query(CategorizationRule).filter(CategorizationRule.id == rule_id).first()
     if not rule:
         raise HTTPException(status_code=404, detail="Rule not found")

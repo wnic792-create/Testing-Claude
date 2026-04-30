@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from typing import Any, Optional
 
 from backend.database import get_db
+from backend.models.user import User
+from backend.dependencies import get_current_user
 from backend.models.account import Account
 from backend.models.category import Category
 from backend.models.transaction import Transaction
@@ -96,7 +98,7 @@ def _create_imported_row(
 
 
 @router.get("/profiles")
-def get_bank_profiles():
+def get_bank_profiles(user: User = Depends(get_current_user)):
     """List available bank CSV profiles."""
     return list_profiles()
 
@@ -107,6 +109,7 @@ async def import_csv(
     account_id: int = Form(...),
     bank_profile: Optional[str] = Form(None),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Import transactions from a CSV file."""
     account = db.query(Account).filter(Account.id == account_id).first()
@@ -153,6 +156,7 @@ async def import_ofx(
     file: UploadFile = File(...),
     account_id: int = Form(...),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Import transactions from an OFX/QFX file."""
     account = db.query(Account).filter(Account.id == account_id).first()
@@ -209,7 +213,7 @@ class ForceImportRequest(BaseModel):
 
 
 @router.post("/force-import")
-def force_import(body: ForceImportRequest, db: Session = Depends(get_db)):
+def force_import(body: ForceImportRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """
     Re-import a set of transactions the user explicitly confirmed, even though
     they matched existing rows by hash. Bypasses dedup entirely.
@@ -272,6 +276,7 @@ def export_csv(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Export transactions as CSV."""
     transactions = _build_export_query(db, account_id, category_id, date_from, date_to)
@@ -297,6 +302,7 @@ def export_json(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Export transactions as JSON."""
     transactions = _build_export_query(db, account_id, category_id, date_from, date_to)

@@ -1,13 +1,26 @@
 const API_BASE = '/api'
 
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('auth_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       ...options?.headers,
     },
     ...options,
   })
+  if (res.status === 401) {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_user_id')
+    localStorage.removeItem('auth_username')
+    window.location.href = '/login'
+    throw new Error('Session expired')
+  }
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(error.detail || `HTTP ${res.status}`)
@@ -42,7 +55,13 @@ export const api = {
     const res = await fetch(`${API_BASE}${path}`, {
       method: 'POST',
       body: formData,
+      headers: { ...getAuthHeaders() },
     })
+    if (res.status === 401) {
+      localStorage.removeItem('auth_token')
+      window.location.href = '/login'
+      throw new Error('Session expired')
+    }
     if (!res.ok) {
       const error = await res.json().catch(() => ({ detail: res.statusText }))
       throw new Error(error.detail || `HTTP ${res.status}`)

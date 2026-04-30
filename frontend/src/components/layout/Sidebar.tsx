@@ -20,9 +20,11 @@ import {
   ChevronDown,
   Check,
   LineChart,
+  LogOut,
 } from 'lucide-react'
 import { useThemeStore } from '../../stores/theme'
 import { useProfileStore } from '../../stores/profile'
+import { useAuthStore } from '../../stores/auth'
 
 const NAV_SECTIONS = [
   {
@@ -67,6 +69,7 @@ export default function Sidebar() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+  const { username, logout } = useAuthStore()
 
   const toggleLang = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'fr' : 'en')
@@ -224,21 +227,35 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-surface-800/60 p-3 flex gap-1.5">
-        <button
-          onClick={toggle}
-          className="flex-1 flex items-center justify-center gap-2 text-[11px] text-surface-500 hover:text-surface-300 py-2 rounded-lg hover:bg-surface-800/60 transition-all duration-200"
-        >
-          {isDark ? <Sun size={13} /> : <Moon size={13} />}
-          {isDark ? 'Light' : 'Dark'}
-        </button>
-        <div className="w-px bg-surface-800" />
-        <button
-          onClick={toggleLang}
-          className="flex-1 text-[11px] text-surface-500 hover:text-surface-300 py-2 rounded-lg hover:bg-surface-800/60 transition-all duration-200 font-semibold"
-        >
-          {i18n.language === 'en' ? 'FR' : 'EN'}
-        </button>
+      <div className="border-t border-surface-800/60 p-3 space-y-2">
+        {username && (
+          <div className="flex items-center justify-between px-2">
+            <span className="text-[11px] text-surface-400 truncate">{username}</span>
+            <button
+              onClick={() => { logout(); navigate('/login') }}
+              className="text-surface-500 hover:text-red-400 transition-colors p-1 rounded"
+              title="Sign out"
+            >
+              <LogOut size={13} />
+            </button>
+          </div>
+        )}
+        <div className="flex gap-1.5">
+          <button
+            onClick={toggle}
+            className="flex-1 flex items-center justify-center gap-2 text-[11px] text-surface-500 hover:text-surface-300 py-2 rounded-lg hover:bg-surface-800/60 transition-all duration-200"
+          >
+            {isDark ? <Sun size={13} /> : <Moon size={13} />}
+            {isDark ? 'Light' : 'Dark'}
+          </button>
+          <div className="w-px bg-surface-800" />
+          <button
+            onClick={toggleLang}
+            className="flex-1 text-[11px] text-surface-500 hover:text-surface-300 py-2 rounded-lg hover:bg-surface-800/60 transition-all duration-200 font-semibold"
+          >
+            {i18n.language === 'en' ? 'FR' : 'EN'}
+          </button>
+        </div>
       </div>
     </aside>
   )

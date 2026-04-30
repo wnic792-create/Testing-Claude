@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.holding import Holding
+from backend.models.user import User
+from backend.dependencies import get_current_user, get_user_profile_ids
 from backend.services.fund_data import (
     lookup_fund, search_funds, FUND_DATABASE,
     REGION_LABELS, REGION_COLORS, SECTOR_LABELS,
@@ -50,9 +52,13 @@ def list_holdings(
     profile_id: Optional[int] = None,
     account_id: Optional[int] = None,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
 ):
-    query = db.query(Holding)
+    query = db.query(Holding).filter(Holding.profile_id.in_(pids))
     if profile_id is not None:
+        if profile_id not in pids:
+            raise HTTPException(status_code=403, detail="Access denied to this profile")
         query = query.filter(Holding.profile_id == profile_id)
     if account_id is not None:
         query = query.filter(Holding.account_id == account_id)
@@ -60,7 +66,14 @@ def list_holdings(
 
 
 @router.post("/", status_code=201)
-def create_holding(data: HoldingCreate, db: Session = Depends(get_db)):
+def create_holding(
+    data: HoldingCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    if data.profile_id not in pids:
+        raise HTTPException(status_code=403, detail="Access denied to this profile")
     if data.fund_code and not data.allocation_json:
         fund = lookup_fund(data.fund_code)
         if fund:
@@ -76,9 +89,13 @@ def create_holding(data: HoldingCreate, db: Session = Depends(get_db)):
 def portfolio_lookthrough(
     profile_id: Optional[int] = None,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
 ):
-    query = db.query(Holding)
+    query = db.query(Holding).filter(Holding.profile_id.in_(pids))
     if profile_id is not None:
+        if profile_id not in pids:
+            raise HTTPException(status_code=403, detail="Access denied to this profile")
         query = query.filter(Holding.profile_id == profile_id)
     holdings = query.all()
 
@@ -138,17 +155,17 @@ def portfolio_lookthrough(
 
 
 @router.get("/funds")
-def list_all_funds():
+def list_all_funds(user: User = Depends(get_current_user)):
     return [{"code": code, **data} for code, data in FUND_DATABASE.items()]
 
 
 @router.get("/funds/search")
-def search_fund_db(q: str = ""):
+def search_fund_db(q: str = "", user: User = Depends(get_current_user)):
     return search_funds(q)
 
 
 @router.get("/funds/{code}")
-def get_fund_info(code: str):
+def get_fund_info(code: str, user: User = Depends(get_current_user)):
     fund = lookup_fund(code)
     if not fund:
         raise HTTPException(404, "Fund not found in database")
@@ -158,8 +175,14 @@ def get_fund_info(code: str):
 # ── Parameterized paths ──────────────────────────────────────────────
 
 @router.patch("/{holding_id}")
-def update_holding(holding_id: int, data: HoldingUpdate, db: Session = Depends(get_db)):
-    h = db.query(Holding).filter(Holding.id == holding_id).first()
+def update_holding(
+    holding_id: int,
+    data: HoldingUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    h = db.query(Holding).filter(Holding.id == holding_id, Holding.profile_id.in_(pids)).first()
     if not h:
         raise HTTPException(404, "Holding not found")
     updates = data.model_dump(exclude_unset=True)
@@ -175,8 +198,13 @@ def update_holding(holding_id: int, data: HoldingUpdate, db: Session = Depends(g
 
 
 @router.delete("/{holding_id}", status_code=204)
-def delete_holding(holding_id: int, db: Session = Depends(get_db)):
-    h = db.query(Holding).filter(Holding.id == holding_id).first()
+def delete_holding(
+    holding_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    pids: list[int] = Depends(get_user_profile_ids),
+):
+    h = db.query(Holding).filter(Holding.id == holding_id, Holding.profile_id.in_(pids)).first()
     if not h:
         raise HTTPException(404, "Holding not found")
     db.delete(h)

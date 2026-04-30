@@ -1,0 +1,41 @@
+import { create } from 'zustand'
+
+interface AuthState {
+  token: string | null
+  userId: number | null
+  username: string | null
+  isAuthenticated: boolean
+  login: (token: string, userId: number, username: string) => void
+  logout: () => void
+  loadFromStorage: () => void
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  token: null,
+  userId: null,
+  username: null,
+  isAuthenticated: false,
+
+  login: (token, userId, username) => {
+    localStorage.setItem('auth_token', token)
+    localStorage.setItem('auth_user_id', String(userId))
+    localStorage.setItem('auth_username', username)
+    set({ token, userId, username, isAuthenticated: true })
+  },
+
+  logout: () => {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_user_id')
+    localStorage.removeItem('auth_username')
+    set({ token: null, userId: null, username: null, isAuthenticated: false })
+  },
+
+  loadFromStorage: () => {
+    const token = localStorage.getItem('auth_token')
+    const userId = localStorage.getItem('auth_user_id')
+    const username = localStorage.getItem('auth_username')
+    if (token && userId && username) {
+      set({ token, userId: Number(userId), username, isAuthenticated: true })
+    }
+  },
+}))

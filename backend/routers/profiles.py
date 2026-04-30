@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from typing import Optional
 from backend.database import get_db
 from backend.models.profile import Profile
+from backend.models.user import User
+from backend.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -21,13 +23,13 @@ class ProfileUpdate(BaseModel):
 
 
 @router.get("/")
-def list_profiles(db: Session = Depends(get_db)):
-    return db.query(Profile).order_by(Profile.id).all()
+def list_profiles(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return db.query(Profile).filter(Profile.user_id == user.id).order_by(Profile.id).all()
 
 
 @router.post("/", status_code=201)
-def create_profile(data: ProfileCreate, db: Session = Depends(get_db)):
-    obj = Profile(**data.model_dump())
+def create_profile(data: ProfileCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    obj = Profile(**data.model_dump(), user_id=user.id)
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -35,8 +37,8 @@ def create_profile(data: ProfileCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{profile_id}")
-def update_profile(profile_id: int, data: ProfileUpdate, db: Session = Depends(get_db)):
-    profile = db.query(Profile).filter(Profile.id == profile_id).first()
+def update_profile(profile_id: int, data: ProfileUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    profile = db.query(Profile).filter(Profile.id == profile_id, Profile.user_id == user.id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
     for key, value in data.model_dump(exclude_unset=True).items():
@@ -47,11 +49,11 @@ def update_profile(profile_id: int, data: ProfileUpdate, db: Session = Depends(g
 
 
 @router.delete("/{profile_id}", status_code=204)
-def delete_profile(profile_id: int, db: Session = Depends(get_db)):
-    profile = db.query(Profile).filter(Profile.id == profile_id).first()
+def delete_profile(profile_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    profile = db.query(Profile).filter(Profile.id == profile_id, Profile.user_id == user.id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
-    count = db.query(Profile).count()
+    count = db.query(Profile).filter(Profile.user_id == user.id).count()
     if count <= 1:
         raise HTTPException(status_code=400, detail="Cannot delete the last profile")
     db.delete(profile)
