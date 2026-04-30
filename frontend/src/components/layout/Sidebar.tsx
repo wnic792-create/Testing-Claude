@@ -19,6 +19,7 @@ import {
   Moon,
   ChevronDown,
   Check,
+  LineChart,
 } from 'lucide-react'
 import { useThemeStore } from '../../stores/theme'
 import { useProfileStore } from '../../stores/profile'
@@ -35,6 +36,7 @@ const NAV_SECTIONS = [
       { path: '/accounts', icon: Wallet, labelKey: 'nav.accounts' },
       { path: '/transactions', icon: ArrowLeftRight, labelKey: 'nav.transactions' },
       { path: '/recurring', icon: Repeat, labelKey: 'nav.recurring' },
+      { path: '/investments', icon: LineChart, labelKey: 'nav.investments' },
     ],
   },
   {

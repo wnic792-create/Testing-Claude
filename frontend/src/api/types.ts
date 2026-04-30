@@ -126,3 +126,40 @@ export interface Goal {
   linked_account_id: number | null
   target_date: string | null
 }
+
+export interface Holding {
+  id: number
+  account_id: number
+  profile_id: number
+  name: string
+  ticker: string | null
+  fund_code: string | null
+  units: number
+  price_per_unit: number
+  market_value: number
+  book_value: number | null
+  asset_class: string
+  region: string | null
+  allocation_json: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FundInfo {
+  code: string
+  name: string
+  category: string
+  mer: number
+  allocation: Record<string, number>
+  top_sectors: Record<string, number>
+}
+
+export interface LookthroughResult {
+  total_value: number
+  region_allocation: Record<string, number>
+  sector_allocation: Record<string, number>
+  region_labels: Record<string, string>
+  region_colors: Record<string, string>
+  sector_labels: Record<string, string>
+}
