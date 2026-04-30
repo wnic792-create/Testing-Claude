@@ -22,9 +22,9 @@ interface Snapshot {
 
 const LIQUID_TYPES = new Set(['chequing', 'savings_hisa'])
 const COLORS = [
-  '#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#a855f7',
-  '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
-  '#14b8a6', '#d946ef',
+  '#00d632', '#ff3b30', '#5856d6', '#ff9500', '#af52de',
+  '#30b0c7', '#ff2d55', '#a2845e', '#64d2ff', '#bf5af2',
+  '#32d74b', '#ff6961',
 ]
 
 type Period = 'this_month' | 'last_month' | 'last_3_months' | 'ytd' | 'last_12_months' | 'all'
@@ -501,7 +501,7 @@ export default function Dashboard() {
               <option key={p} value={p}>{PERIOD_LABELS[p]}</option>
             ))}
           </select>
-          <button onClick={refresh} className="p-2 rounded-lg text-surface-500 hover:text-blue-400 hover:bg-surface-800/50 transition-all duration-200" title="Refresh">
+          <button onClick={refresh} className="p-2 rounded-lg text-surface-500 hover:text-accent hover:bg-surface-800/50 transition-all duration-200" title="Refresh">
             <RefreshCw size={14} />
           </button>
         </div>
@@ -513,7 +513,7 @@ export default function Dashboard() {
 
         {/* Alert for uncategorized transactions */}
         {uncategorizedCount > 0 && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-sm text-amber-300 text-sm">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300 text-sm">
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
               <AlertCircle size={16} className="text-amber-400" />
             </div>
@@ -529,7 +529,6 @@ export default function Dashboard() {
 
           {/* Net Worth — hero card spanning 2 cols */}
           <div className="card col-span-2 p-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
             <div className="relative">
               <div className="flex items-start justify-between">
                 <div>
@@ -537,7 +536,7 @@ export default function Dashboard() {
                   <p className="text-4xl font-bold font-mono mt-2.5 tracking-tight">{fmt(netWorth)}</p>
                   <div className="mt-2 text-xs">
                     {netWorthDelta != null ? (
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${netWorthDelta >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${netWorthDelta >= 0 ? 'bg-accent/10 text-accent' : 'bg-negative/10 text-negative'}`}>
                         {netWorthDelta >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                         {netWorthDelta >= 0 ? '+' : ''}{fmt(netWorthDelta)}
                         <span className="text-surface-500 ml-0.5">30d</span>
@@ -556,19 +555,19 @@ export default function Dashboard() {
               <div className="grid grid-cols-4 gap-4 mt-6 pt-5 border-t border-surface-700/40">
                 <div>
                   <p className="text-[10px] text-surface-500 uppercase tracking-wide font-medium">Assets</p>
-                  <p className="text-sm font-mono font-semibold text-emerald-400 mt-1">{fmt(totalAssets)}</p>
+                  <p className="text-sm font-mono font-semibold text-accent mt-1">{fmt(totalAssets)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-surface-500 uppercase tracking-wide font-medium">Liabilities</p>
-                  <p className="text-sm font-mono font-semibold text-red-400 mt-1">{fmt(totalLiabilities)}</p>
+                  <p className="text-sm font-mono font-semibold text-negative mt-1">{fmt(totalLiabilities)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-surface-500 uppercase tracking-wide font-medium">Investments</p>
-                  <p className="text-sm font-mono font-semibold text-blue-400 mt-1">{fmt(investments)}</p>
+                  <p className="text-sm font-mono font-semibold text-accent mt-1">{fmt(investments)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-surface-500 uppercase tracking-wide font-medium">Real Estate</p>
-                  <p className="text-sm font-mono font-semibold text-violet-400 mt-1">{fmt(realEstate)}</p>
+                  <p className="text-sm font-mono font-semibold text-surface-300 mt-1">{fmt(realEstate)}</p>
                 </div>
               </div>
             </div>
@@ -576,7 +575,6 @@ export default function Dashboard() {
 
           {/* Liquid Cash */}
           <div className="card p-5 flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
             <div className="relative">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] text-surface-400 uppercase tracking-[0.15em] font-semibold">Liquid Cash</p>
@@ -584,12 +582,12 @@ export default function Dashboard() {
                   <Banknote size={15} className="text-surface-400" />
                 </div>
               </div>
-              <p className="text-2xl font-bold font-mono mt-2 text-emerald-400">{fmt(liquidCash)}</p>
+              <p className="text-2xl font-bold font-mono mt-2 text-accent">{fmt(liquidCash)}</p>
             </div>
             <div className="mt-4 pt-4 border-t border-surface-700/40 text-xs space-y-2 relative">
               <div className="flex justify-between">
                 <span className="text-surface-500">Emergency runway</span>
-                <span className={`font-semibold ${runwayMonths >= 3 ? 'text-emerald-400' : runwayMonths >= 1 ? 'text-amber-400' : 'text-red-400'}`}>
+                <span className={`font-semibold ${runwayMonths >= 3 ? 'text-accent' : runwayMonths >= 1 ? 'text-amber-400' : 'text-negative'}`}>
                   {runwayMonths > 0 ? `${runwayMonths.toFixed(1)} mo` : '—'}
                 </span>
               </div>
@@ -602,7 +600,6 @@ export default function Dashboard() {
 
           {/* Period Summary */}
           <div className="card p-5 flex flex-col justify-between relative overflow-hidden">
-            <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 ${netThis >= 0 ? 'bg-emerald-500/5' : 'bg-red-500/5'}`} />
             <div className="relative">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] text-surface-400 uppercase tracking-[0.15em] font-semibold">
@@ -612,7 +609,7 @@ export default function Dashboard() {
                   <Calendar size={15} className="text-surface-400" />
                 </div>
               </div>
-              <p className={`text-2xl font-bold font-mono mt-2 ${netThis >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              <p className={`text-2xl font-bold font-mono mt-2 ${netThis >= 0 ? 'text-accent' : 'text-negative'}`}>
                 {netThis >= 0 ? '+' : ''}{fmt(netThis)}
               </p>
               <p className="text-[10px] text-surface-500 mt-0.5">Net cash retained</p>
@@ -620,22 +617,22 @@ export default function Dashboard() {
             <div className="mt-4 pt-4 border-t border-surface-700/40 text-xs space-y-2 relative">
               <div className="flex justify-between">
                 <span className="text-surface-500">Income</span>
-                <span className="font-mono text-emerald-400">{fmt(incomeThis)}</span>
+                <span className="font-mono text-accent">{fmt(incomeThis)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-surface-500">Expenses</span>
-                <span className="font-mono text-red-400">{fmt(expenseThis)}</span>
+                <span className="font-mono text-negative">{fmt(expenseThis)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-surface-500">Savings rate</span>
-                <span className={`font-semibold ${savingsRate >= 20 ? 'text-emerald-400' : savingsRate >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
+                <span className={`font-semibold ${savingsRate >= 20 ? 'text-accent' : savingsRate >= 10 ? 'text-amber-400' : 'text-negative'}`}>
                   {incomeThis > 0 ? `${savingsRate.toFixed(1)}%` : '—'}
                 </span>
               </div>
               {transferSavedThis > 0 && (
                 <div className="flex justify-between">
                   <span className="text-surface-500">Invested / saved</span>
-                  <span className="font-mono text-blue-400">{fmt(transferSavedThis)}</span>
+                  <span className="font-mono text-accent">{fmt(transferSavedThis)}</span>
                 </div>
               )}
             </div>
@@ -653,26 +650,26 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-semibold text-surface-200">Last 12 months</p>
               <div className="flex items-center gap-3 text-[11px] text-surface-500">
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500"/>Income</span>
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500"/>Expenses</span>
-                <span className="flex items-center gap-1.5"><span className="w-3.5 h-0.5 rounded bg-blue-400"/>Net</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-accent"/>Income</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-negative"/>Expenses</span>
+                <span className="flex items-center gap-1.5"><span className="w-3.5 h-0.5 rounded bg-white"/>Net</span>
               </div>
             </div>
             {eligible.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={cashFlow12} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                  <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                  <XAxis dataKey="month" stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => fmtCompact(v)} width={72} axisLine={false} tickLine={false} />
+                  <CartesianGrid stroke="#222" strokeDasharray="3 3" />
+                  <XAxis dataKey="month" stroke="#333" tick={{ fontSize: 10, fill: '#737373' }} axisLine={false} tickLine={false} />
+                  <YAxis stroke="#333" tick={{ fontSize: 10, fill: '#737373' }} tickFormatter={v => fmtCompact(v)} width={72} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
-                    labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}
+                    contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
+                    labelStyle={{ color: '#999', fontWeight: 600, marginBottom: 4 }}
                     formatter={(v: number) => fmt(v)}
-                    cursor={{ fill: 'rgba(59,130,246,0.05)' }}
+                    cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                   />
-                  <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="net" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                  <Bar dataKey="income" fill="#00d632" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expenses" fill="#ff3b30" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="net" stroke="#ffffff" strokeWidth={2} dot={false} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -682,7 +679,6 @@ export default function Dashboard() {
 
           {/* Spending by category — pie + list stacked */}
           <div className="card flex flex-col relative overflow-hidden" style={{ minHeight: 320 }}>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
             <div className="relative flex flex-col flex-1">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-semibold text-surface-200">Spending</p>
@@ -695,11 +691,11 @@ export default function Dashboard() {
                     <PieChart>
                       <Pie data={spendByCategory} dataKey="value" nameKey="name" innerRadius={38} outerRadius={62} paddingAngle={2}>
                         {spendByCategory.map((_, i) => (
-                          <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="#0f172a" strokeWidth={2} />
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="#111" strokeWidth={2} />
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+                        contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
                         formatter={(v: number) => fmt(v)}
                       />
                     </PieChart>
@@ -742,7 +738,6 @@ export default function Dashboard() {
 
           {/* Net worth trend */}
           <div className="card col-span-2 flex flex-col relative overflow-hidden" style={{ minHeight: 280 }}>
-            <div className="absolute top-0 left-0 w-40 h-40 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 -translate-x-1/4" />
             <div className="relative flex flex-col flex-1">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm font-semibold text-surface-200">Net Worth Trend</p>
@@ -753,23 +748,23 @@ export default function Dashboard() {
               {netWorthSeries.length >= 2 ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={netWorthSeries} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                    <XAxis dataKey="date" stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => v.slice(0, 7)} axisLine={false} tickLine={false} />
-                    <YAxis stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => fmtCompact(v)} width={72} axisLine={false} tickLine={false} />
+                    <CartesianGrid stroke="#222" strokeDasharray="3 3" />
+                    <XAxis dataKey="date" stroke="#333" tick={{ fontSize: 10, fill: '#737373' }} tickFormatter={v => v.slice(0, 7)} axisLine={false} tickLine={false} />
+                    <YAxis stroke="#333" tick={{ fontSize: 10, fill: '#737373' }} tickFormatter={v => fmtCompact(v)} width={72} axisLine={false} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
-                      labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}
+                      contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
+                      labelStyle={{ color: '#999', fontWeight: 600, marginBottom: 4 }}
                       formatter={(v: number) => [fmt(v), 'Net Worth']}
-                      cursor={{ stroke: 'rgba(99,102,241,0.2)', strokeWidth: 1 }}
+                      cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
                     />
                     <Line
                       type="monotone"
                       dataKey="netWorth"
-                      stroke={isDerived ? '#6366f1' : '#3b82f6'}
+                      stroke={isDerived ? '#999' : '#00d632'}
                       strokeWidth={2.5}
                       strokeDasharray={isDerived ? '4 2' : undefined}
-                      dot={{ r: 3, strokeWidth: 2, fill: '#0f172a' }}
-                      activeDot={{ r: 5, strokeWidth: 2, fill: isDerived ? '#6366f1' : '#3b82f6' }}
+                      dot={{ r: 3, strokeWidth: 2, fill: '#0a0a0a' }}
+                      activeDot={{ r: 5, strokeWidth: 2, fill: isDerived ? '#999' : '#00d632' }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -798,7 +793,7 @@ export default function Dashboard() {
           <div className="card flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold text-surface-200">Recent Activity</p>
-              <a href="/transactions" className="text-[11px] text-blue-400 hover:text-blue-300 transition-colors font-medium">View all →</a>
+              <a href="/transactions" className="text-[11px] text-accent hover:text-accent-400 transition-colors font-medium">View all →</a>
             </div>
             {recent.length > 0 ? (
               <div className="flex-1 space-y-0.5">
@@ -813,7 +808,7 @@ export default function Dashboard() {
                         )}
                       </p>
                     </div>
-                    <span className={`font-mono shrink-0 ml-3 text-[11px] font-semibold ${tx.amount >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <span className={`font-mono shrink-0 ml-3 text-[11px] font-semibold ${tx.amount >= 0 ? 'text-accent' : 'text-negative'}`}>
                       {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
                     </span>
                   </div>
@@ -832,7 +827,6 @@ export default function Dashboard() {
           <SectionLabel>Account Balance History · 12 months</SectionLabel>
 
           <div className="card p-5 relative overflow-hidden">
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/3 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
             <div className="relative">
               {/* Controls row */}
               <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -844,7 +838,7 @@ export default function Dashboard() {
                       onClick={() => setAcctFilter(f)}
                       className={`px-3.5 py-1.5 text-[11px] rounded-lg transition-all duration-200 font-medium ${
                         acctFilter === f
-                          ? 'bg-blue-500/15 text-blue-400 shadow-sm shadow-blue-500/10'
+                          ? 'bg-white/10 text-accent shadow-sm'
                           : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700/40'
                       }`}
                     >
@@ -856,12 +850,12 @@ export default function Dashboard() {
                 {/* 12-month summary pills */}
                 {annualKPIs && (
                   <div className="flex gap-2 flex-wrap">
-                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border ${annualKPIs.debtPaidOff >= 0 ? 'bg-emerald-500/8 text-emerald-400 border-emerald-500/15' : 'bg-red-500/8 text-red-400 border-red-500/15'}`}>
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border ${annualKPIs.debtPaidOff >= 0 ? 'bg-accent/10 text-accent border-accent/20' : 'bg-negative/10 text-negative border-negative/20'}`}>
                       <TrendingDown size={11} />
                       <span className="text-surface-500">Debt:</span>
                       {annualKPIs.debtPaidOff >= 0 ? `−${fmt(annualKPIs.debtPaidOff)}` : `+${fmt(Math.abs(annualKPIs.debtPaidOff))}`}
                     </div>
-                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border ${annualKPIs.investGrowth >= 0 ? 'bg-blue-500/8 text-blue-400 border-blue-500/15' : 'bg-red-500/8 text-red-400 border-red-500/15'}`}>
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border ${annualKPIs.investGrowth >= 0 ? 'bg-accent/10 text-accent border-accent/20' : 'bg-negative/10 text-negative border-negative/20'}`}>
                       <TrendingUp size={11} />
                       <span className="text-surface-500">Investments:</span>
                       {annualKPIs.investGrowth >= 0 ? '+' : ''}{fmt(annualKPIs.investGrowth)}
@@ -880,12 +874,12 @@ export default function Dashboard() {
               {/* Line chart */}
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={accountBalanceSeries} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                  <XAxis dataKey="date" stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis stroke="#475569" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => fmtCompact(v)} width={72} axisLine={false} tickLine={false} />
+                  <CartesianGrid stroke="#222" strokeDasharray="3 3" />
+                  <XAxis dataKey="date" stroke="#333" tick={{ fontSize: 10, fill: '#737373' }} axisLine={false} tickLine={false} />
+                  <YAxis stroke="#333" tick={{ fontSize: 10, fill: '#737373' }} tickFormatter={v => fmtCompact(v)} width={72} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
-                    labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}
+                    contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
+                    labelStyle={{ color: '#999', fontWeight: 600, marginBottom: 4 }}
                     formatter={(v: number, name: string) => [fmt(v), name]}
                   />
                   <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
@@ -929,13 +923,13 @@ export default function Dashboard() {
                           <p className="text-[10px] text-surface-500 uppercase tracking-wide mt-0.5">{acct.type.replace(/_/g, ' ')}</p>
                         </td>
                         <td className="py-3 text-right font-mono font-semibold text-surface-100">{fmt(current)}</td>
-                        <td className={`py-3 text-right font-mono ${mom === 0 ? 'text-surface-600' : mom > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <td className={`py-3 text-right font-mono ${mom === 0 ? 'text-surface-600' : mom > 0 ? 'text-accent' : 'text-negative'}`}>
                           {mom === 0 ? '—' : `${mom > 0 ? '+' : ''}${fmt(mom)}`}
                         </td>
-                        <td className={`py-3 text-right font-mono ${qtr === 0 ? 'text-surface-600' : qtr > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <td className={`py-3 text-right font-mono ${qtr === 0 ? 'text-surface-600' : qtr > 0 ? 'text-accent' : 'text-negative'}`}>
                           {qtr === 0 ? '—' : `${qtr > 0 ? '+' : ''}${fmt(qtr)}`}
                         </td>
-                        <td className={`py-3 text-right font-mono font-semibold ${yoy === 0 ? 'text-surface-600' : yoy > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <td className={`py-3 text-right font-mono font-semibold ${yoy === 0 ? 'text-surface-600' : yoy > 0 ? 'text-accent' : 'text-negative'}`}>
                           {yoy === 0 ? '—' : `${yoy > 0 ? '+' : ''}${fmt(yoy)}`}
                         </td>
                       </tr>
@@ -950,7 +944,7 @@ export default function Dashboard() {
 
       {/* ── Section 5: Accounts ────────────────────────────────────── */}
       <section className="space-y-4">
-        <SectionLabel action={<a href="/accounts" className="text-xs text-blue-400 hover:underline">Manage</a>}>
+        <SectionLabel action={<a href="/accounts" className="text-xs text-accent hover:underline">Manage</a>}>
           Accounts
         </SectionLabel>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -961,9 +955,9 @@ export default function Dashboard() {
                   <p className="text-[10px] text-surface-500 uppercase tracking-wider font-medium">{a.type.replace(/_/g, ' ')}</p>
                   <p className="truncate text-surface-200 font-medium text-sm mt-1 group-hover:text-surface-100 transition-colors">{a.name}</p>
                 </div>
-                <div className={`w-2 h-2 rounded-full mt-1 shrink-0 ${a.is_asset ? 'bg-emerald-500/60' : 'bg-red-500/60'}`} />
+                <div className={`w-2 h-2 rounded-full mt-1 shrink-0 ${a.is_asset ? 'bg-accent/60' : 'bg-negative/60'}`} />
               </div>
-              <p className={`font-mono font-bold text-lg mt-3 ${a.current_balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              <p className={`font-mono font-bold text-lg mt-3 ${a.current_balance >= 0 ? 'text-accent' : 'text-negative'}`}>
                 {fmt(a.current_balance)}
               </p>
             </div>

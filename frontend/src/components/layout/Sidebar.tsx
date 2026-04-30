@@ -15,8 +15,6 @@ import {
   Repeat,
   Users,
   Settings,
-  Sun,
-  Moon,
   ChevronDown,
   Check,
   LineChart,
@@ -64,7 +62,6 @@ const NAV_SECTIONS = [
 
 export default function Sidebar() {
   const { t, i18n } = useTranslation()
-  const { isDark, toggle } = useThemeStore()
   const { profiles, activeProfileId, setActiveProfileId } = useProfileStore()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -90,94 +87,94 @@ export default function Sidebar() {
     : profiles.find(p => p.id === activeProfileId)
 
   return (
-    <aside className="w-56 bg-gradient-to-b from-surface-900 via-surface-900 to-surface-950 border-r border-surface-800/80 flex flex-col h-full shrink-0">
+    <aside className="w-60 bg-surface-950 border-r border-surface-800 flex flex-col h-full shrink-0">
       {/* Logo */}
-      <div className="px-5 py-5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Wallet size={16} className="text-white" />
+      <div className="px-6 py-6">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center">
+            <Wallet size={18} className="text-surface-950" />
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-tight text-surface-100">Local Finance</h1>
-            <p className="text-[10px] text-surface-500 font-medium">Personal Tracker</p>
+            <h1 className="text-[15px] font-bold tracking-tight text-white">Finance</h1>
+            <p className="text-[11px] text-surface-500">Personal Tracker</p>
           </div>
         </div>
       </div>
 
       {/* Profile switcher */}
       {profiles.length > 0 && (
-        <div className="px-3 pb-3" ref={dropdownRef}>
+        <div className="px-4 pb-4" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-surface-800/50 hover:bg-surface-800/80 border border-surface-700/40 hover:border-surface-600/50 transition-all duration-200 text-left"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-900 hover:bg-surface-800 border border-surface-800 hover:border-surface-700 transition-all duration-200 text-left"
           >
             {activeProfile ? (
               <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm"
-                style={{ background: `linear-gradient(135deg, ${activeProfile.color}, ${activeProfile.color}dd)` }}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                style={{ background: activeProfile.color }}
               >
                 {activeProfile.avatar_initial}
               </div>
             ) : (
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-500 text-white shrink-0 shadow-sm">
-                <Users size={13} />
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-surface-700 text-white shrink-0">
+                <Users size={14} />
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <span className="text-xs font-medium text-surface-200 truncate block">
+              <span className="text-sm font-medium text-white truncate block">
                 {activeProfile ? activeProfile.name : 'Combined'}
               </span>
-              <span className="text-[10px] text-surface-500">
+              <span className="text-[11px] text-surface-500">
                 {activeProfile ? 'Personal' : 'All profiles'}
               </span>
             </div>
-            <ChevronDown size={13} className={`text-surface-500 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown size={14} className={`text-surface-500 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {dropdownOpen && (
-            <div className="mt-1.5 bg-surface-800/95 backdrop-blur-md rounded-xl border border-surface-700/60 shadow-xl shadow-black/30 overflow-hidden absolute z-50 w-[calc(100%-1.5rem)]">
+            <div className="mt-2 bg-surface-900 rounded-xl border border-surface-700/60 shadow-2xl shadow-black/40 overflow-hidden absolute z-50 w-[calc(100%-2rem)]">
               <div className="p-1.5">
                 {profiles.map(p => (
                   <button
                     key={p.id}
                     onClick={() => { setActiveProfileId(p.id); setDropdownOpen(false) }}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 text-xs rounded-lg transition-all duration-150 text-left ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all duration-150 text-left ${
                       activeProfileId === p.id
-                        ? 'bg-blue-500/10 text-blue-300'
-                        : 'hover:bg-surface-700/60 text-surface-300'
+                        ? 'bg-accent/10 text-accent'
+                        : 'hover:bg-surface-800 text-surface-300'
                     }`}
                   >
                     <div
-                      className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[9px] font-bold shrink-0"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
                       style={{ background: p.color }}
                     >
                       {p.avatar_initial}
                     </div>
                     <span className="truncate flex-1">{p.name}</span>
-                    {activeProfileId === p.id && <Check size={13} className="text-blue-400 shrink-0" />}
+                    {activeProfileId === p.id && <Check size={14} className="text-accent shrink-0" />}
                   </button>
                 ))}
               </div>
-              <div className="border-t border-surface-700/50 p-1.5">
+              <div className="border-t border-surface-800 p-1.5">
                 <button
                   onClick={() => { setActiveProfileId('all'); setDropdownOpen(false) }}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 text-xs rounded-lg transition-all duration-150 text-left ${
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all duration-150 text-left ${
                     activeProfileId === 'all'
-                      ? 'bg-purple-500/10 text-purple-300'
-                      : 'hover:bg-surface-700/60 text-surface-300'
+                      ? 'bg-accent/10 text-accent'
+                      : 'hover:bg-surface-800 text-surface-300'
                   }`}
                 >
-                  <div className="w-6 h-6 rounded-md flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-500 text-white shrink-0">
-                    <Users size={11} />
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center bg-surface-700 text-white shrink-0">
+                    <Users size={12} />
                   </div>
                   <span className="flex-1">Combined</span>
-                  {activeProfileId === 'all' && <Check size={13} className="text-purple-400 shrink-0" />}
+                  {activeProfileId === 'all' && <Check size={14} className="text-accent shrink-0" />}
                 </button>
                 <button
                   onClick={() => { setDropdownOpen(false); navigate('/profiles') }}
-                  className="w-full text-left px-2.5 py-2 text-xs text-surface-500 hover:text-surface-300 rounded-lg hover:bg-surface-700/60 transition-all duration-150"
+                  className="w-full text-left px-3 py-2.5 text-sm text-surface-500 hover:text-surface-300 rounded-lg hover:bg-surface-800 transition-all duration-150"
                 >
-                  Manage profiles…
+                  Manage profiles...
                 </button>
               </div>
             </div>
@@ -186,11 +183,11 @@ export default function Sidebar() {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 pb-2">
+      <nav className="flex-1 overflow-y-auto px-4 pb-3">
         {NAV_SECTIONS.map((section, si) => (
-          <div key={si} className={si > 0 ? 'mt-5' : ''}>
+          <div key={si} className={si > 0 ? 'mt-6' : ''}>
             {section.label && (
-              <p className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-surface-500/80">
+              <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-surface-500">
                 {section.label}
               </p>
             )}
@@ -201,22 +198,17 @@ export default function Sidebar() {
                   to={path}
                   end={path === '/'}
                   className={({ isActive }) =>
-                    `group flex items-center gap-3 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all duration-200 ${
+                    `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
                       isActive
-                        ? 'bg-blue-500/10 text-blue-400 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.15)]'
-                        : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/60'
+                        ? 'bg-white/[0.08] text-white'
+                        : 'text-surface-400 hover:text-white hover:bg-white/[0.04]'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      <div className={`transition-colors duration-200 ${isActive ? 'text-blue-400' : 'text-surface-500 group-hover:text-surface-400'}`}>
-                        <Icon size={16} strokeWidth={isActive ? 2 : 1.75} />
-                      </div>
+                      <Icon size={18} strokeWidth={isActive ? 2 : 1.5} className={isActive ? 'text-accent' : ''} />
                       <span>{t(labelKey)}</span>
-                      {isActive && (
-                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(59,130,246,0.6)]" />
-                      )}
                     </>
                   )}
                 </NavLink>
@@ -227,35 +219,25 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-surface-800/60 p-3 space-y-2">
+      <div className="border-t border-surface-800 p-4 space-y-3">
         {username && (
-          <div className="flex items-center justify-between px-2">
-            <span className="text-[11px] text-surface-400 truncate">{username}</span>
+          <div className="flex items-center justify-between px-3">
+            <span className="text-[12px] text-surface-400 truncate">{username}</span>
             <button
               onClick={() => { logout(); navigate('/login') }}
-              className="text-surface-500 hover:text-red-400 transition-colors p-1 rounded"
+              className="text-surface-500 hover:text-negative transition-colors p-1.5 rounded-lg hover:bg-surface-800"
               title="Sign out"
             >
-              <LogOut size={13} />
+              <LogOut size={14} />
             </button>
           </div>
         )}
-        <div className="flex gap-1.5">
-          <button
-            onClick={toggle}
-            className="flex-1 flex items-center justify-center gap-2 text-[11px] text-surface-500 hover:text-surface-300 py-2 rounded-lg hover:bg-surface-800/60 transition-all duration-200"
-          >
-            {isDark ? <Sun size={13} /> : <Moon size={13} />}
-            {isDark ? 'Light' : 'Dark'}
-          </button>
-          <div className="w-px bg-surface-800" />
-          <button
-            onClick={toggleLang}
-            className="flex-1 text-[11px] text-surface-500 hover:text-surface-300 py-2 rounded-lg hover:bg-surface-800/60 transition-all duration-200 font-semibold"
-          >
-            {i18n.language === 'en' ? 'FR' : 'EN'}
-          </button>
-        </div>
+        <button
+          onClick={toggleLang}
+          className="w-full text-[12px] text-surface-500 hover:text-surface-300 py-2 rounded-xl hover:bg-surface-800 transition-all duration-200 font-semibold"
+        >
+          {i18n.language === 'en' ? 'Francais' : 'English'}
+        </button>
       </div>
     </aside>
   )

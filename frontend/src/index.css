@@ -5,96 +5,85 @@
 @layer base {
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    @apply bg-surface-950 text-surface-100;
+    @apply bg-surface-950 text-white antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-surface-700/60 rounded-full;
+    @apply bg-surface-700/40 rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-surface-600;
+    @apply bg-surface-600/60;
   }
 
   select option {
-    background-color: #1e293b;
-    color: #f1f5f9;
+    background-color: #1a1a1a;
+    color: #ffffff;
   }
 
   ::selection {
-    @apply bg-blue-500/30 text-blue-100;
+    @apply bg-accent/20 text-white;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-surface-900/80 backdrop-blur-sm border border-surface-700/50 rounded-xl p-4
-           shadow-[0_1px_3px_rgba(0,0,0,0.3),0_1px_2px_rgba(0,0,0,0.2)]
+    @apply bg-surface-900 border border-surface-700/40 rounded-2xl p-5
            transition-all duration-200;
   }
   .card:hover {
-    @apply border-surface-600/50 shadow-[0_4px_12px_rgba(0,0,0,0.4),0_2px_4px_rgba(0,0,0,0.3)];
+    @apply border-surface-600/50;
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-blue-600 to-blue-500
-           hover:from-blue-500 hover:to-blue-400
-           text-white px-4 py-2 rounded-lg text-sm font-medium
+    @apply bg-accent hover:bg-accent-600
+           text-surface-950 px-5 py-2.5 rounded-full text-sm font-semibold
            transition-all duration-200
-           shadow-[0_1px_3px_rgba(37,99,235,0.3)]
-           hover:shadow-[0_4px_12px_rgba(37,99,235,0.35)]
            active:scale-[0.97];
   }
 
   .btn-secondary {
-    @apply bg-surface-800/80 hover:bg-surface-700/80 border border-surface-600/40
-           text-surface-200 px-4 py-2 rounded-lg text-sm font-medium
+    @apply bg-surface-800 hover:bg-surface-700 border border-surface-600/40
+           text-white px-5 py-2.5 rounded-full text-sm font-medium
            transition-all duration-200
            hover:border-surface-500/50
            active:scale-[0.97];
   }
 
   .input {
-    @apply bg-surface-800/60 border border-surface-600/40 rounded-lg px-3 py-2
-           text-sm text-surface-100 placeholder-surface-500
-           focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60
+    @apply bg-surface-800 border border-surface-700/50 rounded-xl px-4 py-2.5
+           text-sm text-white placeholder-surface-500
+           focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50
            transition-all duration-200;
   }
 
   .badge-green {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium
-           bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium
+           bg-accent/10 text-accent border border-accent/20;
   }
   .badge-red {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium
-           bg-red-500/10 text-red-400 border border-red-500/20;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium
+           bg-negative/10 text-negative border border-negative/20;
   }
   .badge-amber {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium
            bg-amber-500/10 text-amber-400 border border-amber-500/20;
   }
   .badge-blue {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium
-           bg-blue-500/10 text-blue-400 border border-blue-500/20;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium
+           bg-white/5 text-surface-300 border border-surface-600/30;
   }
 }
 
 @layer utilities {
-  .glow-blue {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15), 0 0 60px rgba(59, 130, 246, 0.05);
-  }
-  .glow-green {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15), 0 0 60px rgba(16, 185, 129, 0.05);
-  }
-  .glow-red {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.12), 0 0 60px rgba(239, 68, 68, 0.04);
-  }
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r;
   }
