@@ -1,8 +1,9 @@
-# Database
+# Database & secrets
 data/*.db
 data/*.db-journal
 data/*.db-wal
 data/*.bak
+data/.secret_key
 
 # Python
 __pycache__/
