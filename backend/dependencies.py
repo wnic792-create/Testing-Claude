@@ -28,4 +28,23 @@ def get_user_profile_ids(
     db: Session = Depends(get_db),
 ) -> list[int]:
     rows = db.query(Profile.id).filter(Profile.user_id == user.id).all()
-    return [r[0] for r in rows]
+    pids = [r[0] for r in rows]
+    if not pids:
+        orphans = db.query(Profile).filter(Profile.user_id == None).all()
+        for p in orphans:
+            p.user_id = user.id
+        if orphans:
+            db.commit()
+            pids = [p.id for p in orphans]
+        if not pids:
+            new_profile = Profile(
+                user_id=user.id,
+                name="My Finances",
+                color="#00d632",
+                avatar_initial=user.username[0].upper() if user.username else "U",
+            )
+            db.add(new_profile)
+            db.commit()
+            db.refresh(new_profile)
+            pids = [new_profile.id]
+    return pids

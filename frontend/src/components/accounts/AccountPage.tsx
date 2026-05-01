@@ -39,16 +39,24 @@ export default function AccountPage() {
   useEffect(() => { fetchAccounts() }, [activeProfileId])
 
   const handleCreate = async () => {
+    if (!defaultProfileId) {
+      alert('No profile found. Please refresh the page.')
+      return
+    }
     const isDebt = DEBT_TYPES.includes(form.type)
-    await api.post('/accounts', {
-      ...form,
-      profile_id: defaultProfileId,
-      is_asset: !isDebt,
-      current_balance: isDebt ? -Math.abs(form.current_balance) : form.current_balance,
-    })
-    setForm({ name: '', type: 'chequing', currency: 'CAD', institution: '', current_balance: 0 })
-    setShowForm(false)
-    fetchAccounts()
+    try {
+      await api.post('/accounts', {
+        ...form,
+        profile_id: defaultProfileId,
+        is_asset: !isDebt,
+        current_balance: isDebt ? -Math.abs(form.current_balance) : form.current_balance,
+      })
+      setForm({ name: '', type: 'chequing', currency: 'CAD', institution: '', current_balance: 0 })
+      setShowForm(false)
+      fetchAccounts()
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Failed to create account')
+    }
   }
 
   const handleDelete = async (id: number) => {
