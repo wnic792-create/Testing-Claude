@@ -30,7 +30,7 @@ const REGION_LABELS: Record<string, string> = {
 
 export default function InvestmentPage() {
   const { t, i18n } = useTranslation()
-  const activeProfileId = useProfileStore(s => s.activeProfileId)
+  const { activeProfileId, profiles } = useProfileStore()
   const [holdings, setHoldings] = useState<Holding[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -94,7 +94,7 @@ export default function InvestmentPage() {
   }
 
   const createHolding = async () => {
-    const profileId = activeProfileId === 'all' ? 1 : activeProfileId
+    const profileId = activeProfileId === 'all' ? profiles[0]?.id : activeProfileId
     const mv = parseFloat(form.market_value) || (parseFloat(form.units) || 0) * (parseFloat(form.price_per_unit) || 0)
     await api.post('/holdings', {
       account_id: form.account_id || investmentAccounts[0]?.id,

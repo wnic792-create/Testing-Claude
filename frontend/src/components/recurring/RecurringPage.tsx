@@ -62,7 +62,7 @@ export default function RecurringPage() {
     notes: '',
   })
 
-  const activeProfileId = useProfileStore(s => s.activeProfileId)
+  const { activeProfileId, profiles } = useProfileStore()
 
   const refresh = useCallback(() => {
     api.get<RecurringRule[]>('/recurring').then(setRules)
@@ -85,7 +85,7 @@ export default function RecurringPage() {
     if (!form.account_id || !form.description || !form.amount) return
     await api.post('/recurring', {
       account_id: Number(form.account_id),
-      profile_id: activeProfileId === 'all' ? 1 : activeProfileId,
+      profile_id: activeProfileId === 'all' ? profiles[0]?.id : activeProfileId,
       description: form.description,
       amount: Number(form.amount),
       category_id: form.category_id ? Number(form.category_id) : null,

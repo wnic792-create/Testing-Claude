@@ -19,7 +19,7 @@ export default function ScenarioPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
-  const activeProfileId = useProfileStore(s => s.activeProfileId)
+  const { activeProfileId, profiles } = useProfileStore()
 
   const fetchScenarios = async () => {
     const data = await api.get<Scenario[]>('/scenarios')
@@ -33,7 +33,7 @@ export default function ScenarioPage() {
 
   const handleCreate = async () => {
     if (!newName.trim()) return
-    const s = await api.post<Scenario>('/scenarios', { name: newName.trim(), profile_id: activeProfileId === 'all' ? 1 : activeProfileId })
+    const s = await api.post<Scenario>('/scenarios', { name: newName.trim(), profile_id: activeProfileId === 'all' ? profiles[0]?.id : activeProfileId })
     setNewName('')
     setCreating(false)
     fetchScenarios()

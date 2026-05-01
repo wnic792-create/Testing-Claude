@@ -29,6 +29,7 @@ export default function AccountPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', type: 'chequing', currency: 'CAD', institution: '', current_balance: 0 })
   const { activeProfileId, profiles } = useProfileStore()
+  const defaultProfileId = activeProfileId === 'all' ? profiles[0]?.id : activeProfileId
 
   const fetchAccounts = async () => {
     const data = await api.get<Account[]>('/accounts')
@@ -41,7 +42,7 @@ export default function AccountPage() {
     const isDebt = DEBT_TYPES.includes(form.type)
     await api.post('/accounts', {
       ...form,
-      profile_id: activeProfileId === 'all' ? 1 : activeProfileId,
+      profile_id: defaultProfileId,
       is_asset: !isDebt,
       current_balance: isDebt ? -Math.abs(form.current_balance) : form.current_balance,
     })
