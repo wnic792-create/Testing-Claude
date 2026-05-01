@@ -148,7 +148,7 @@ export default function ImportDialog({ open, onClose, onImported }: Props) {
         <div className="p-5 space-y-4">
           {result ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-400">
+              <div className="flex items-center gap-2 text-accent">
                 <CheckCircle size={20} />
                 <span className="font-medium">Import complete</span>
               </div>
@@ -157,7 +157,7 @@ export default function ImportDialog({ open, onClose, onImported }: Props) {
                 <p><span className="font-mono">{result.duplicates_skipped}</span> duplicates skipped</p>
                 <p><span className="font-mono">{result.auto_categorized}</span> auto-categorized</p>
                 {(result.auto_transferred ?? 0) > 0 && (
-                  <p className="text-blue-400">
+                  <p className="text-accent">
                     <span className="font-mono">{result.auto_transferred}</span> auto-paired as transfers
                   </p>
                 )}
@@ -212,7 +212,7 @@ export default function ImportDialog({ open, onClose, onImported }: Props) {
                               </span>
                               <span
                                 className={`font-mono shrink-0 ${
-                                  d.incoming.amount < 0 ? 'text-red-400' : 'text-green-400'
+                                  d.incoming.amount < 0 ? 'text-negative' : 'text-accent'
                                 }`}
                               >
                                 {fmtAmount(d.incoming.amount, d.incoming.currency)}
@@ -238,7 +238,7 @@ export default function ImportDialog({ open, onClose, onImported }: Props) {
                       )
                     })}
                   </div>
-                  {error && <p className="text-red-400 text-sm">{error}</p>}
+                  {error && <p className="text-negative text-sm">{error}</p>}
                   <button
                     onClick={handleForceImport}
                     disabled={dupSelected.size === 0 || forcing}
@@ -314,7 +314,7 @@ export default function ImportDialog({ open, onClose, onImported }: Props) {
               </div>
 
               {error && (
-                <p className="text-red-400 text-sm">{error}</p>
+                <p className="text-negative text-sm">{error}</p>
               )}
 
               <button

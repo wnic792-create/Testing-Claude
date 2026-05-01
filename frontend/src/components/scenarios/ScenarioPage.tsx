@@ -105,7 +105,7 @@ export default function ScenarioPage() {
                 <button onClick={() => handleClone(s.id)} className="p-1.5 text-surface-500 hover:text-surface-200 hover:bg-surface-800 rounded" title="Clone">
                   <Copy size={14} />
                 </button>
-                <button onClick={() => handleDelete(s.id)} className="p-1.5 text-surface-500 hover:text-red-400 hover:bg-surface-800 rounded" title="Delete">
+                <button onClick={() => handleDelete(s.id)} className="p-1.5 text-surface-500 hover:text-negative hover:bg-surface-800 rounded" title="Delete">
                   <Trash2 size={14} />
                 </button>
                 <ChevronRight size={14} className="text-surface-500" />

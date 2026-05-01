@@ -227,11 +227,11 @@ export default function BudgetPage() {
             </div>
             <div className="card">
               <p className="text-xs text-surface-400 uppercase">Spent</p>
-              <p className="text-xl font-bold font-mono text-red-400 mt-1">{formatCurrency(variance.total_actual)}</p>
+              <p className="text-xl font-bold font-mono text-negative mt-1">{formatCurrency(variance.total_actual)}</p>
             </div>
             <div className="card">
               <p className="text-xs text-surface-400 uppercase">Remaining</p>
-              <p className={`text-xl font-bold font-mono mt-1 ${variance.total_variance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`text-xl font-bold font-mono mt-1 ${variance.total_variance >= 0 ? 'text-accent' : 'text-negative'}`}>
                 {formatCurrency(variance.total_variance)}
               </p>
             </div>
@@ -254,12 +254,12 @@ export default function BudgetPage() {
                 {variance.lines.map(line => (
                   <tr key={line.budget_id} className={`${line.is_over ? 'bg-red-500/5' : ''} hover:bg-surface-800/50`}>
                     <td className="px-4 py-2 flex items-center gap-2">
-                      {line.is_over && <AlertTriangle size={13} className="text-red-400 shrink-0" />}
+                      {line.is_over && <AlertTriangle size={13} className="text-negative shrink-0" />}
                       <span className={line.is_over ? 'text-red-300' : ''}>{getCatName(line)}</span>
                     </td>
                     <td className="px-4 py-2 text-right font-mono text-xs">{formatCurrency(line.effective_budget)}</td>
-                    <td className="px-4 py-2 text-right font-mono text-xs text-red-400">{formatCurrency(line.actual)}</td>
-                    <td className={`px-4 py-2 text-right font-mono text-xs ${line.variance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <td className="px-4 py-2 text-right font-mono text-xs text-negative">{formatCurrency(line.actual)}</td>
+                    <td className={`px-4 py-2 text-right font-mono text-xs ${line.variance >= 0 ? 'text-accent' : 'text-negative'}`}>
                       {formatCurrency(line.variance)}
                     </td>
                     <td className="px-4 py-2">
@@ -267,7 +267,7 @@ export default function BudgetPage() {
                         <div className="flex-1 h-2 bg-surface-700 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${
-                              line.pct_used > 100 ? 'bg-red-500' : line.pct_used > 80 ? 'bg-yellow-500' : 'bg-green-500'
+                              line.pct_used > 100 ? 'bg-red-500' : line.pct_used > 80 ? 'bg-amber-500' : 'bg-accent'
                             }`}
                             style={{ width: `${Math.min(line.pct_used, 100)}%` }}
                           />

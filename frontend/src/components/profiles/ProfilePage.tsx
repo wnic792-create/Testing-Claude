@@ -133,7 +133,7 @@ export default function ProfilePage() {
           <div
             key={p.id}
             className={`card p-5 relative group transition-all ${
-              activeProfileId === p.id ? 'ring-2 ring-blue-500/50' : ''
+              activeProfileId === p.id ? 'ring-2 ring-accent/50' : ''
             }`}
           >
             <div className="flex items-start gap-4">
@@ -149,7 +149,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-semibold text-surface-100 truncate">{p.name}</h3>
                   {activeProfileId === p.id && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-900/30 text-blue-400 border border-blue-800/40">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent/10 text-accent border border-accent/20">
                       Active
                     </span>
                   )}
@@ -164,7 +164,7 @@ export default function ProfilePage() {
                 {activeProfileId !== p.id && (
                   <button
                     onClick={() => setActiveProfileId(p.id)}
-                    className="p-1.5 text-surface-500 hover:text-green-400 transition-colors"
+                    className="p-1.5 text-surface-500 hover:text-accent transition-colors"
                     title="Switch to this profile"
                   >
                     <Check size={14} />
@@ -172,7 +172,7 @@ export default function ProfilePage() {
                 )}
                 <button
                   onClick={() => startEdit(p)}
-                  className="p-1.5 text-surface-500 hover:text-blue-400 transition-colors"
+                  className="p-1.5 text-surface-500 hover:text-accent transition-colors"
                   title="Edit"
                 >
                   <Edit3 size={14} />
@@ -180,7 +180,7 @@ export default function ProfilePage() {
                 {profiles.length > 1 && (
                   <button
                     onClick={() => handleDelete(p.id)}
-                    className="p-1.5 text-surface-500 hover:text-red-400 transition-colors"
+                    className="p-1.5 text-surface-500 hover:text-negative transition-colors"
                     title="Delete"
                   >
                     <Trash2 size={14} />

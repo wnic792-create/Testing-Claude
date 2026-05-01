@@ -198,7 +198,7 @@ export default function CategoryCombobox({
                 type="button"
                 onClick={handleCreate}
                 disabled={creating}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-green-400 hover:bg-surface-700 disabled:opacity-50"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-accent hover:bg-surface-700 disabled:opacity-50"
               >
                 <Plus size={12} />
                 {creating ? 'Creating...' : `Create "${query.trim()}"`}
@@ -228,7 +228,7 @@ export default function CategoryCombobox({
                     onClick={() => handleSelect(c.id)}
                     className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-700"
                   >
-                    {c.id === value && <Check size={12} className="text-blue-400" />}
+                    {c.id === value && <Check size={12} className="text-accent" />}
                     <span className={c.id === value ? '' : 'ml-4'}>
                       {parent && (
                         <span className="text-surface-500">{labelOf(parent)} › </span>

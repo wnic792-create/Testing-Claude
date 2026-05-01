@@ -154,7 +154,7 @@ export default function TransactionList() {
         />
         <button
           onClick={handleDeleteAll}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-red-400 border border-red-900 hover:bg-red-900/30 transition-colors"
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-negative border border-negative/30 hover:bg-negative/10 transition-colors"
         >
           <Trash2 size={12} />
           Delete all filtered
@@ -194,13 +194,13 @@ export default function TransactionList() {
                       onCreateCategory={handleCreateCategory}
                     />
                   </td>
-                  <td className={`px-4 py-1.5 text-right font-mono text-xs ${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  <td className={`px-4 py-1.5 text-right font-mono text-xs ${tx.amount >= 0 ? 'text-accent' : 'text-negative'}`}>
                     {formatAmount(tx.amount, tx.currency)}
                   </td>
                   <td className="px-2 py-1.5 text-center">
                     <button
                       onClick={() => handleDelete(tx.id)}
-                      className="text-surface-500 hover:text-red-400 p-1"
+                      className="text-surface-500 hover:text-negative p-1"
                       title={t('common.delete') || 'Delete'}
                     >
                       <Trash2 size={13} />

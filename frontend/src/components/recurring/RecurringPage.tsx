@@ -170,7 +170,7 @@ export default function RecurringPage() {
 
       {/* Execution result banner */}
       {lastResult && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-green-800/40 bg-green-900/20 text-green-400 text-sm">
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-accent/20 bg-green-900/20 text-accent text-sm">
           <CheckCircle size={15} />
           <span>{lastResult.created} transaction{lastResult.created !== 1 ? 's' : ''} created from recurring rules.</span>
           <button onClick={() => setLastResult(null)} className="ml-auto text-surface-400 hover:text-surface-200">
@@ -191,7 +191,7 @@ export default function RecurringPage() {
         </div>
         <div className="card p-3">
           <p className="text-[10px] text-surface-500 uppercase tracking-wide">Est. Monthly</p>
-          <p className="text-lg font-bold font-mono mt-0.5 text-red-400">{fmt(-monthlyEstimate)}</p>
+          <p className="text-lg font-bold font-mono mt-0.5 text-negative">{fmt(-monthlyEstimate)}</p>
         </div>
         <div className="card p-3">
           <p className="text-[10px] text-surface-500 uppercase tracking-wide">Paused</p>
@@ -298,7 +298,7 @@ export default function RecurringPage() {
                             Due
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-900/30 text-green-400 border border-green-800/40">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent/10 text-accent border border-accent/20">
                             Active
                           </span>
                         )}
@@ -308,7 +308,7 @@ export default function RecurringPage() {
                         {rule.notes && <p className="text-[10px] text-surface-500 mt-0.5">{rule.notes}</p>}
                       </td>
                       <td className="px-4 py-2.5 text-surface-400">{acctName(rule.account_id)}</td>
-                      <td className={`px-4 py-2.5 text-right font-mono font-semibold ${rule.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      <td className={`px-4 py-2.5 text-right font-mono font-semibold ${rule.amount >= 0 ? 'text-accent' : 'text-negative'}`}>
                         {fmt(rule.amount)}
                       </td>
                       <td className="px-4 py-2.5 text-surface-300">{FREQ_LABELS[rule.frequency] ?? rule.frequency}</td>
@@ -322,7 +322,7 @@ export default function RecurringPage() {
                       <td className="px-4 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => handleSkip(rule.id)} title="Skip next"
-                            className="p-1 text-surface-500 hover:text-blue-400 transition-colors">
+                            className="p-1 text-surface-500 hover:text-accent transition-colors">
                             <SkipForward size={13} />
                           </button>
                           <button onClick={() => handleToggle(rule)} title={rule.is_active ? 'Pause' : 'Resume'}
@@ -330,7 +330,7 @@ export default function RecurringPage() {
                             {rule.is_active ? <Pause size={13} /> : <Play size={13} />}
                           </button>
                           <button onClick={() => handleDelete(rule.id)} title="Delete"
-                            className="p-1 text-surface-500 hover:text-red-400 transition-colors">
+                            className="p-1 text-surface-500 hover:text-negative transition-colors">
                             <Trash2 size={13} />
                           </button>
                         </div>

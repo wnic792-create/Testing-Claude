@@ -150,7 +150,7 @@ export default function CategoriesPage() {
           onClick={() => setTab('categories')}
           className={`flex items-center gap-2 px-4 py-2 text-sm border-b-2 transition-colors -mb-px ${
             tab === 'categories'
-              ? 'border-blue-400 text-blue-400'
+              ? 'border-accent text-accent'
               : 'border-transparent text-surface-400 hover:text-surface-200'
           }`}
         >
@@ -161,7 +161,7 @@ export default function CategoriesPage() {
           onClick={() => setTab('rules')}
           className={`flex items-center gap-2 px-4 py-2 text-sm border-b-2 transition-colors -mb-px ${
             tab === 'rules'
-              ? 'border-blue-400 text-blue-400'
+              ? 'border-accent text-accent'
               : 'border-transparent text-surface-400 hover:text-surface-200'
           }`}
         >
@@ -238,7 +238,7 @@ export default function CategoriesPage() {
                     {!parent.is_system && (
                       <button
                         onClick={() => handleDeleteCategory(parent.id)}
-                        className="text-surface-500 hover:text-red-400"
+                        className="text-surface-500 hover:text-negative"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -250,7 +250,7 @@ export default function CategoriesPage() {
                         key={child.id}
                         className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs ${
                           child.is_transfer_category
-                            ? 'bg-blue-950/40 border border-blue-900/60'
+                            ? 'bg-accent/5 border border-accent/20'
                             : 'bg-surface-800'
                         }`}
                       >
@@ -261,7 +261,7 @@ export default function CategoriesPage() {
                           onClick={() => handleToggleTransferCategory(child)}
                           className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] border transition-colors ${
                             child.is_transfer_category
-                              ? 'border-blue-500 text-blue-300 bg-blue-900/40'
+                              ? 'border-accent text-accent bg-accent/10'
                               : 'border-surface-600 text-surface-500 hover:text-surface-300'
                           }`}
                           title="Treat as a transfer between accounts (money-movement, not spending)"
@@ -282,7 +282,7 @@ export default function CategoriesPage() {
                                   e.target.value ? Number(e.target.value) : null,
                                 )
                               }
-                              className="bg-surface-900 border border-surface-700 rounded px-1.5 py-0.5 text-xs text-surface-200 max-w-[200px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="bg-surface-900 border border-surface-700 rounded px-1.5 py-0.5 text-xs text-surface-200 max-w-[200px] focus:outline-none focus:ring-1 focus:ring-accent"
                               title="Imports with this category will auto-pair a transfer into this account"
                             >
                               <option value="">No default — imports stay single-leg</option>
@@ -307,7 +307,7 @@ export default function CategoriesPage() {
                         {!child.is_system && (
                           <button
                             onClick={() => handleDeleteCategory(child.id)}
-                            className="text-surface-500 hover:text-red-400"
+                            className="text-surface-500 hover:text-negative"
                           >
                             <Trash2 size={11} />
                           </button>
@@ -408,7 +408,7 @@ export default function CategoriesPage() {
                           <select
                             value={rule.category_id}
                             onChange={e => handleUpdateRuleCategory(rule.id, Number(e.target.value))}
-                            className="bg-surface-900 border border-surface-700 rounded px-1.5 py-0.5 text-xs text-surface-200 w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="bg-surface-900 border border-surface-700 rounded px-1.5 py-0.5 text-xs text-surface-200 w-full focus:outline-none focus:ring-1 focus:ring-accent"
                           >
                             {parentCategories.map(parent => (
                               <optgroup key={parent.id} label={catName(parent)}>
@@ -424,7 +424,7 @@ export default function CategoriesPage() {
                             type="number"
                             value={rule.priority}
                             onChange={e => handleUpdateRulePriority(rule.id, Number(e.target.value))}
-                            className="w-14 bg-surface-900 border border-surface-700 rounded px-1 py-0.5 text-xs text-surface-200 text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-14 bg-surface-900 border border-surface-700 rounded px-1 py-0.5 text-xs text-surface-200 text-center focus:outline-none focus:ring-1 focus:ring-accent"
                             title="Higher priority rules are checked first"
                           />
                         </td>
@@ -432,7 +432,7 @@ export default function CategoriesPage() {
                         <td className="px-4 py-2 text-xs text-center">
                           <span className={`px-1.5 py-0.5 rounded text-xs ${
                             rule.source === 'learned'
-                              ? 'bg-green-900/50 text-green-400'
+                              ? 'bg-accent/10 text-accent'
                               : 'bg-surface-700 text-surface-400'
                           }`}>
                             {rule.source}
@@ -441,7 +441,7 @@ export default function CategoriesPage() {
                         <td className="px-2 py-2 text-center">
                           <button
                             onClick={() => handleDeleteRule(rule.id)}
-                            className="text-surface-500 hover:text-red-400"
+                            className="text-surface-500 hover:text-negative"
                           >
                             <Trash2 size={13} />
                           </button>

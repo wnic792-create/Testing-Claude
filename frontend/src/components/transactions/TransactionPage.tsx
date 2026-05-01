@@ -249,7 +249,7 @@ export default function TransactionPage() {
             {isTransfer ? (
               <>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-surface-400 text-blue-400">To account</label>
+                  <label className="text-xs text-surface-400 text-accent">To account</label>
                   <select
                     value={form.to_account_id}
                     onChange={e => setForm({ ...form, to_account_id: e.target.value })}
@@ -283,7 +283,7 @@ export default function TransactionPage() {
           </div>
 
           {isTransfer && (
-            <p className="mt-2 text-xs text-blue-400/70">
+            <p className="mt-2 text-xs text-accent/70">
               Transfer: money moves out of <strong>{accounts.find(a => String(a.id) === form.account_id)?.name || '…'}</strong> and into the destination account. Both balances update automatically.
             </p>
           )}

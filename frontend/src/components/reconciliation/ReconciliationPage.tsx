@@ -30,8 +30,8 @@ const fmt = (n: number) =>
   new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 2 }).format(n)
 
 const STATUS_BADGE: Record<MatchStatus, { icon: string; label: string; classes: string }> = {
-  matched:   { icon: '✅', label: 'Matched',   classes: 'bg-green-900/30 text-green-400 border-green-800/50' },
-  missing:   { icon: '❌', label: 'Missing',   classes: 'bg-red-900/30 text-red-400 border-red-800/50' },
+  matched:   { icon: '✅', label: 'Matched',   classes: 'bg-accent/10 text-accent border-accent/20' },
+  missing:   { icon: '❌', label: 'Missing',   classes: 'bg-negative/10 text-negative border-negative/20' },
   unmatched: { icon: '⚠️', label: 'Unmatched', classes: 'bg-amber-900/30 text-amber-400 border-amber-800/50' },
 }
 
@@ -240,17 +240,17 @@ export default function ReconciliationPage() {
             <SummaryCard
               label="Matched"
               value={`${matched.length} txn — ${fmt(matched.reduce((s, r) => s + r.amount, 0))}`}
-              color="text-green-400"
+              color="text-accent"
             />
             <SummaryCard
               label="Missing"
               value={`${missing.length} txn — ${fmt(missing.reduce((s, r) => s + r.amount, 0))}`}
-              color="text-red-400"
+              color="text-negative"
             />
             <SummaryCard
               label="Net Discrepancy"
               value={fmt(discrepancy)}
-              color={Math.abs(discrepancy) < 0.01 ? 'text-green-400' : 'text-amber-400'}
+              color={Math.abs(discrepancy) < 0.01 ? 'text-accent' : 'text-amber-400'}
             />
           </div>
 
@@ -261,8 +261,8 @@ export default function ReconciliationPage() {
                 Reconciliation Results — {results.length} rows
               </p>
               <div className="flex gap-3 text-xs">
-                <span className="text-green-400">✅ {matched.length} matched</span>
-                <span className="text-red-400">❌ {missing.length} missing</span>
+                <span className="text-accent">✅ {matched.length} matched</span>
+                <span className="text-negative">❌ {missing.length} missing</span>
                 <span className="text-amber-400">⚠️ {unmatched.length} unmatched</span>
               </div>
             </div>
@@ -296,7 +296,7 @@ export default function ReconciliationPage() {
                           {tx.description || '—'}
                         </td>
                         <td className={`px-4 py-2.5 text-right font-mono font-semibold ${
-                          r.status === 'matched' ? 'text-green-400' : r.status === 'missing' ? 'text-red-400' : 'text-amber-400'
+                          r.status === 'matched' ? 'text-accent' : r.status === 'missing' ? 'text-negative' : 'text-amber-400'
                         }`}>
                           {fmt(amt)}
                         </td>
@@ -412,7 +412,7 @@ function EntryPanel({ title, subtitle, rows, onUpdate, onAdd, onRemove, onPaste,
                 <td className="px-2 py-1.5 text-center">
                   <button
                     onClick={() => onRemove(row.id)}
-                    className="text-surface-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="text-surface-600 hover:text-negative opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 size={13} />
                   </button>

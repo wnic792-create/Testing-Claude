@@ -183,9 +183,9 @@ export default function GoalPage() {
                   <div>
                     <h3 className="font-medium text-sm flex items-center gap-2">
                       {progress && progress.pct >= 100 ? (
-                        <CheckCircle size={14} className="text-green-400" />
+                        <CheckCircle size={14} className="text-accent" />
                       ) : (
-                        <Target size={14} className="text-blue-400" />
+                        <Target size={14} className="text-accent" />
                       )}
                       {goal.name}
                     </h3>
@@ -194,7 +194,7 @@ export default function GoalPage() {
                       {goal.target_date && ` · Target: ${goal.target_date}`}
                     </p>
                   </div>
-                  <button onClick={() => handleDelete(goal.id)} className="text-surface-500 hover:text-red-400">
+                  <button onClick={() => handleDelete(goal.id)} className="text-surface-500 hover:text-negative">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -210,13 +210,13 @@ export default function GoalPage() {
                     <div className="h-2 bg-surface-700 rounded-full overflow-hidden mb-2">
                       <div
                         className={`h-full rounded-full transition-all ${
-                          progress.pct >= 100 ? 'bg-green-500' : progress.pct > 50 ? 'bg-blue-500' : 'bg-yellow-500'
+                          progress.pct >= 100 ? 'bg-accent' : progress.pct > 50 ? 'bg-accent' : 'bg-amber-500'
                         }`}
                         style={{ width: `${Math.min(progress.pct, 100)}%` }}
                       />
                     </div>
                     {progress.hitMonth ? (
-                      <p className="text-xs text-green-400 flex items-center gap-1">
+                      <p className="text-xs text-accent flex items-center gap-1">
                         <CheckCircle size={12} />
                         Projected to hit target by {progress.hitMonth}
                       </p>
