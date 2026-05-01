@@ -191,7 +191,7 @@ export default function ForecastPage() {
   })
   const portfolioTotal = { start: portfolioRows.reduce((s, r) => s + r.startBal, 0), end: portfolioRows.reduce((s, r) => s + r.endBal, 0) }
 
-  const tooltipStyle = { backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: 6, fontSize: 12 }
+  const tooltipStyle = { backgroundColor: '#222222', border: '1px solid #475569', borderRadius: 6, fontSize: 12 }
   const s = primary?.summary
 
   return (
@@ -208,7 +208,7 @@ export default function ForecastPage() {
             {([5, 10, 15, 20, 30] as HorizonYears[]).map(y => (
               <button key={y} onClick={() => setHorizonYears(y)}
                 className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                  horizonYears === y ? 'bg-blue-600 text-white' : 'text-surface-400 hover:text-surface-200'
+                  horizonYears === y ? 'bg-accent text-white' : 'text-surface-400 hover:text-surface-200'
                 }`}>
                 {y}y
               </button>
@@ -235,7 +235,7 @@ export default function ForecastPage() {
           <button key={sc.id} onClick={() => toggleScenario(sc.id)}
             className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-md border transition-colors ${
               selectedIds.includes(sc.id)
-                ? 'border-blue-500 bg-blue-500/10 text-blue-300'
+                ? 'border-accent bg-accent/10 text-accent'
                 : 'border-surface-600 text-surface-400 hover:border-surface-500'
             }`}>
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: sc.color }} />
@@ -269,9 +269,9 @@ export default function ForecastPage() {
                   </div>
                   <div className="text-center px-2">
                     {s.net_worth_change >= 0
-                      ? <TrendingUp size={18} className="text-green-400 mx-auto" />
-                      : <TrendingDown size={18} className="text-red-400 mx-auto" />}
-                    <p className={`text-xs font-mono font-bold mt-0.5 ${s.net_worth_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      ? <TrendingUp size={18} className="text-accent mx-auto" />
+                      : <TrendingDown size={18} className="text-negative mx-auto" />}
+                    <p className={`text-xs font-mono font-bold mt-0.5 ${s.net_worth_change >= 0 ? 'text-accent' : 'text-negative'}`}>
                       {s.net_worth_change >= 0 ? '+' : ''}{fmt(s.net_worth_change)}
                     </p>
                   </div>
@@ -287,7 +287,7 @@ export default function ForecastPage() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs">
                     <span className="text-surface-400">Gross Income</span>
-                    <span className="font-mono text-green-400">{fmtFull(s.total_income)}</span>
+                    <span className="font-mono text-accent">{fmtFull(s.total_income)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-surface-400">Taxes</span>
@@ -295,17 +295,17 @@ export default function ForecastPage() {
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-surface-400">Living Expenses</span>
-                    <span className="font-mono text-red-400">−{fmtFull(s.total_expenses - (s.total_debt_payments || 0))}</span>
+                    <span className="font-mono text-negative">−{fmtFull(s.total_expenses - (s.total_debt_payments || 0))}</span>
                   </div>
                   {(s.total_debt_payments || 0) > 0 && (
                     <div className="flex justify-between text-xs">
                       <span className="text-surface-400">Debt Payments</span>
-                      <span className="font-mono text-red-400">−{fmtFull(s.total_debt_payments)}</span>
+                      <span className="font-mono text-negative">−{fmtFull(s.total_debt_payments)}</span>
                     </div>
                   )}
                   <div className="border-t border-surface-700 pt-1 flex justify-between text-xs font-semibold">
                     <span className="text-surface-300">Net Cash Flow</span>
-                    <span className={`font-mono ${(s.total_income - s.total_expenses - s.total_tax) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <span className={`font-mono ${(s.total_income - s.total_expenses - s.total_tax) >= 0 ? 'text-accent' : 'text-negative'}`}>
                       {fmtFull(s.total_income - s.total_expenses - s.total_tax)}
                     </span>
                   </div>
@@ -317,11 +317,11 @@ export default function ForecastPage() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs">
                     <span className="text-surface-400">Total Contributed</span>
-                    <span className="font-mono text-blue-400">{fmtFull(s.total_savings)}</span>
+                    <span className="font-mono text-accent">{fmtFull(s.total_savings)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-surface-400">Compound Growth</span>
-                    <span className="font-mono text-green-400">+{fmtFull(s.total_investment_growth)}</span>
+                    <span className="font-mono text-accent">+{fmtFull(s.total_investment_growth)}</span>
                   </div>
                   <div className="border-t border-surface-700 pt-1 flex justify-between text-xs font-semibold">
                     <span className="text-surface-300">Total Portfolio Value</span>
@@ -350,7 +350,7 @@ export default function ForecastPage() {
                   <button key={key} onClick={() => setChartView(key)}
                     className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
                       chartView === key
-                        ? 'border-blue-500 bg-blue-500/10 text-blue-300'
+                        ? 'border-accent bg-accent/10 text-accent'
                         : 'border-surface-700 text-surface-400 hover:text-surface-200 hover:border-surface-600'
                     }`}>
                     {label}
@@ -485,7 +485,7 @@ export default function ForecastPage() {
                         <td className="py-2 text-surface-500 uppercase">{acct.type.replace('_', ' ')}</td>
                         <td className="py-2 text-right font-mono text-surface-300">{fmtFull(startBal)}</td>
                         <td className="py-2 text-right font-mono font-semibold text-surface-100">{fmtFull(endBal)}</td>
-                        <td className={`py-2 text-right font-mono font-semibold ${endBal - startBal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <td className={`py-2 text-right font-mono font-semibold ${endBal - startBal >= 0 ? 'text-accent' : 'text-negative'}`}>
                           {endBal - startBal >= 0 ? '+' : ''}{fmtFull(endBal - startBal)}
                         </td>
                       </tr>
@@ -496,7 +496,7 @@ export default function ForecastPage() {
                       <td className="py-2 text-surface-300" colSpan={2}>Total Portfolio</td>
                       <td className="py-2 text-right font-mono text-surface-300">{fmtFull(portfolioTotal.start)}</td>
                       <td className="py-2 text-right font-mono text-surface-100">{fmtFull(portfolioTotal.end)}</td>
-                      <td className={`py-2 text-right font-mono ${portfolioTotal.end - portfolioTotal.start >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      <td className={`py-2 text-right font-mono ${portfolioTotal.end - portfolioTotal.start >= 0 ? 'text-accent' : 'text-negative'}`}>
                         {portfolioTotal.end - portfolioTotal.start >= 0 ? '+' : ''}{fmtFull(portfolioTotal.end - portfolioTotal.start)}
                       </td>
                     </tr>
@@ -535,11 +535,11 @@ export default function ForecastPage() {
                             <span className="text-surface-500 font-normal ml-1">({row.month_count} mo)</span>
                           )}
                         </td>
-                        <td className="py-2 text-right font-mono text-green-400">{fmtFull(row.income)}</td>
-                        <td className="py-2 text-right font-mono text-red-400">{fmtFull(row.expenses - row.debt_payments)}</td>
-                        <td className="py-2 text-right font-mono text-red-300">{fmtFull(row.debt_payments)}</td>
+                        <td className="py-2 text-right font-mono text-accent">{fmtFull(row.income)}</td>
+                        <td className="py-2 text-right font-mono text-negative">{fmtFull(row.expenses - row.debt_payments)}</td>
+                        <td className="py-2 text-right font-mono text-negative">{fmtFull(row.debt_payments)}</td>
                         <td className="py-2 text-right font-mono text-orange-400">{fmtFull(row.tax)}</td>
-                        <td className="py-2 text-right font-mono text-blue-400">{fmtFull(row.savings)}</td>
+                        <td className="py-2 text-right font-mono text-accent">{fmtFull(row.savings)}</td>
                         <td className="py-2 text-right font-mono font-semibold text-surface-100">{fmtFull(row.net_worth)}</td>
                       </tr>
                     ))}
@@ -547,11 +547,11 @@ export default function ForecastPage() {
                   <tfoot>
                     <tr className="border-t-2 border-surface-600 font-semibold">
                       <td className="py-2 text-surface-300">{horizonYears}-Year Total</td>
-                      <td className="py-2 text-right font-mono text-green-400">{fmtFull(yearlyTotals.income)}</td>
-                      <td className="py-2 text-right font-mono text-red-400">{fmtFull(yearlyTotals.expenses - yearlyTotals.debt_payments)}</td>
-                      <td className="py-2 text-right font-mono text-red-300">{fmtFull(yearlyTotals.debt_payments)}</td>
+                      <td className="py-2 text-right font-mono text-accent">{fmtFull(yearlyTotals.income)}</td>
+                      <td className="py-2 text-right font-mono text-negative">{fmtFull(yearlyTotals.expenses - yearlyTotals.debt_payments)}</td>
+                      <td className="py-2 text-right font-mono text-negative">{fmtFull(yearlyTotals.debt_payments)}</td>
                       <td className="py-2 text-right font-mono text-orange-400">{fmtFull(yearlyTotals.tax)}</td>
-                      <td className="py-2 text-right font-mono text-blue-400">{fmtFull(yearlyTotals.savings)}</td>
+                      <td className="py-2 text-right font-mono text-accent">{fmtFull(yearlyTotals.savings)}</td>
                       <td className="py-2 text-right font-mono text-surface-500">—</td>
                     </tr>
                   </tfoot>

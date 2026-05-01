@@ -199,7 +199,7 @@ export default function ProfilePage() {
           onClick={() => setActiveProfileId('all')}
         >
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-500 text-white shrink-0">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-accent to-purple-500 text-white shrink-0">
               <Users size={20} />
             </div>
             <div className="flex-1 min-w-0">

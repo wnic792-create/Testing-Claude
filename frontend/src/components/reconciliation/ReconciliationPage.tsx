@@ -342,7 +342,7 @@ function EntryPanel({ title, subtitle, rows, onUpdate, onAdd, onRemove, onPaste,
   onPaste: () => void
   accentColor: 'blue' | 'purple'
 }) {
-  const borderColor = accentColor === 'blue' ? 'border-t-blue-500' : 'border-t-purple-500'
+  const borderColor = accentColor === 'blue' ? 'border-t-accent' : 'border-t-purple-500'
 
   return (
     <div className={`card p-0 overflow-hidden border-t-2 ${borderColor}`}>

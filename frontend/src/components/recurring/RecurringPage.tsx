@@ -170,7 +170,7 @@ export default function RecurringPage() {
 
       {/* Execution result banner */}
       {lastResult && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-accent/20 bg-green-900/20 text-accent text-sm">
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-accent/20 bg-accent/10 text-accent text-sm">
           <CheckCircle size={15} />
           <span>{lastResult.created} transaction{lastResult.created !== 1 ? 's' : ''} created from recurring rules.</span>
           <button onClick={() => setLastResult(null)} className="ml-auto text-surface-400 hover:text-surface-200">

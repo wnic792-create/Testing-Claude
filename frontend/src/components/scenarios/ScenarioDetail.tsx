@@ -127,7 +127,7 @@ export default function ScenarioDetail({ scenarioId, onBack }: { scenarioId: num
             key={tb.key}
             onClick={() => setTab(tb.key)}
             className={`px-4 py-2 text-sm border-b-2 transition-colors ${
-              tab === tb.key ? 'border-blue-500 text-blue-400' : 'border-transparent text-surface-400 hover:text-surface-200'
+              tab === tb.key ? 'border-blue-500 text-accent' : 'border-transparent text-surface-400 hover:text-surface-200'
             }`}
           >
             {tb.label}
@@ -540,7 +540,7 @@ function SavingsTab({ sid, savings, employerRrsp, incomes, accounts, onRefresh }
                   <td className="px-3 py-2 font-mono text-xs">{s.frequency}</td>
                   <td className="px-3 py-2 font-mono text-xs">
                     {s.expected_return_rate !== null ? (
-                      <span className="text-blue-400">{s.expected_return_rate}%</span>
+                      <span className="text-accent">{s.expected_return_rate}%</span>
                     ) : (
                       <span className="text-surface-500">default</span>
                     )}
@@ -550,7 +550,7 @@ function SavingsTab({ sid, savings, employerRrsp, incomes, accounts, onRefresh }
                       <div>
                         <span className="text-surface-200">${Math.round(proj).toLocaleString()}</span>
                         {growthPortion !== null && growthPortion > 0 && (
-                          <span className="text-green-400 text-[10px] ml-1.5">
+                          <span className="text-accent text-[10px] ml-1.5">
                             +${Math.round(growthPortion).toLocaleString()} interest
                           </span>
                         )}
@@ -561,7 +561,7 @@ function SavingsTab({ sid, savings, employerRrsp, incomes, accounts, onRefresh }
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{s.start_month}</td>
                   <td className="px-3 py-2 text-right">
-                    <button onClick={async () => { await api.delete(`/forecast/${sid}/savings/${s.id}`); onRefresh() }} className="text-surface-500 hover:text-red-400"><Trash2 size={13} /></button>
+                    <button onClick={async () => { await api.delete(`/forecast/${sid}/savings/${s.id}`); onRefresh() }} className="text-surface-500 hover:text-negative"><Trash2 size={13} /></button>
                   </td>
                 </tr>
               )
@@ -644,11 +644,11 @@ function SavingsTab({ sid, savings, employerRrsp, incomes, accounts, onRefresh }
                 </div>
                 <div className="flex justify-between">
                   <span className="text-surface-400">Employer match ({erForm.employer_match_rate}%)</span>
-                  <span className="font-mono text-green-400">+${Math.round(erPreview.er).toLocaleString()}/mo free</span>
+                  <span className="font-mono text-accent">+${Math.round(erPreview.er).toLocaleString()}/mo free</span>
                 </div>
                 <div className="flex justify-between border-t border-surface-700 pt-1 font-semibold">
                   <span className="text-surface-300">Total to RRSP</span>
-                  <span className="font-mono text-blue-400">${Math.round(erPreview.total).toLocaleString()}/mo</span>
+                  <span className="font-mono text-accent">${Math.round(erPreview.total).toLocaleString()}/mo</span>
                 </div>
               </div>
             )}
@@ -687,14 +687,14 @@ function SavingsTab({ sid, savings, employerRrsp, incomes, accounts, onRefresh }
                       <span className="text-surface-500 ml-1">(${Math.round(emp).toLocaleString()}/mo)</span>
                     </td>
                     <td className="px-3 py-2 font-mono text-xs text-right">
-                      <span className="text-green-400">{er.employer_match_rate}%</span>
+                      <span className="text-accent">{er.employer_match_rate}%</span>
                       <span className="text-surface-500 ml-1">(${Math.round(employer).toLocaleString()}/mo)</span>
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs text-right text-blue-400 font-semibold">
+                    <td className="px-3 py-2 font-mono text-xs text-right text-accent font-semibold">
                       ${Math.round(emp + employer).toLocaleString()}/mo
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <button onClick={async () => { await api.delete(`/forecast/${sid}/employer-rrsp/${er.id}`); onRefresh() }} className="text-surface-500 hover:text-red-400">
+                      <button onClick={async () => { await api.delete(`/forecast/${sid}/employer-rrsp/${er.id}`); onRefresh() }} className="text-surface-500 hover:text-negative">
                         <Trash2 size={13} />
                       </button>
                     </td>
@@ -867,12 +867,12 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
   }
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  const readinessColor = fundedPct >= 100 ? 'text-green-400' : fundedPct >= 75 ? 'text-amber-400' : 'text-red-400'
-  const readinessBadge = fundedPct >= 100 ? 'bg-green-900/40 text-green-400' : fundedPct >= 75 ? 'bg-amber-900/40 text-amber-400' : 'bg-red-900/40 text-red-400'
+  const readinessColor = fundedPct >= 100 ? 'text-accent' : fundedPct >= 75 ? 'text-amber-400' : 'text-negative'
+  const readinessBadge = fundedPct >= 100 ? 'bg-accent/10 text-accent' : fundedPct >= 75 ? 'bg-amber-500/10 text-amber-400' : 'bg-negative/10 text-negative'
   const readinessLabel = fundedPct >= 100 ? 'On Track' : fundedPct >= 75 ? 'Almost There' : 'Needs Attention'
   const progressColor = fundedPct >= 100 ? 'bg-green-500' : fundedPct >= 75 ? 'bg-amber-500' : 'bg-red-500'
   const tipBorder = { good: 'border-l-green-500', warn: 'border-l-amber-500', info: 'border-l-blue-500' }
-  const tipTitle = { good: 'text-green-400', warn: 'text-amber-400', info: 'text-blue-400' }
+  const tipTitle = { good: 'text-accent', warn: 'text-amber-400', info: 'text-accent' }
 
   if (!primaryIncome) {
     return (
@@ -929,7 +929,7 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
             {erMonthly > 0 && (
               <div className="flex justify-between">
                 <span className="text-surface-500">incl. employer RRSP</span>
-                <span className="font-mono text-green-400">+{fmt(erMonthly)}/mo</span>
+                <span className="font-mono text-accent">+{fmt(erMonthly)}/mo</span>
               </div>
             )}
           </div>
@@ -957,7 +957,7 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
               </div>
               <div className="shrink-0 text-right">
                 {fundedPct >= 100 ? (
-                  <div className="text-green-400 flex flex-col items-center gap-1">
+                  <div className="text-accent flex flex-col items-center gap-1">
                     <CheckCircle size={36} />
                     <p className="text-[10px]">Fully funded</p>
                   </div>
@@ -983,14 +983,14 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
             </div>
             <div className="card p-4">
               <p className="text-[10px] text-surface-500 uppercase tracking-wide mb-1">Projected at {retireAge}</p>
-              <p className={`text-2xl font-bold font-mono ${projected >= nestEgg ? 'text-green-400' : 'text-amber-400'}`}>
+              <p className={`text-2xl font-bold font-mono ${projected >= nestEgg ? 'text-accent' : 'text-amber-400'}`}>
                 {fmtBig(projected)}
               </p>
               <p className="text-[10px] text-surface-500 mt-1">{(returnRate * 100).toFixed(0)}%/yr growth</p>
             </div>
             <div className="card p-4">
               <p className="text-[10px] text-surface-500 uppercase tracking-wide mb-1">{gap > 0 ? 'Funding Gap' : 'Surplus'}</p>
-              <p className={`text-2xl font-bold font-mono ${gap <= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`text-2xl font-bold font-mono ${gap <= 0 ? 'text-accent' : 'text-negative'}`}>
                 {gap <= 0 ? `+${fmtBig(Math.abs(gap))}` : `-${fmtBig(gap)}`}
               </p>
               <p className="text-[10px] text-surface-500 mt-1">
@@ -1023,12 +1023,12 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
               </div>
               <div className="flex justify-between pt-2 border-t border-surface-700 mt-0.5">
                 <span className="text-surface-400 font-semibold">Monthly retirement income</span>
-                <span className="font-mono font-bold text-blue-400 text-sm">{fmt(targetAnnual / 12)}/mo</span>
+                <span className="font-mono font-bold text-accent text-sm">{fmt(targetAnnual / 12)}/mo</span>
               </div>
               {addlNeeded > 0 && (
                 <div className="flex justify-between pt-2 border-t border-surface-700 mt-0.5">
-                  <span className="text-red-400 font-semibold">Additional needed now</span>
-                  <span className="font-mono font-bold text-red-400">+{fmt(addlNeeded)}/mo</span>
+                  <span className="text-negative font-semibold">Additional needed now</span>
+                  <span className="font-mono font-bold text-negative">+{fmt(addlNeeded)}/mo</span>
                 </div>
               )}
             </div>
@@ -1091,7 +1091,7 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
         {extraMonthly > 0 && readyAtAgeExtra != null && (
           <div className={`mb-4 px-3 py-2 rounded-lg text-xs flex items-center gap-2 ${
             readyAtAgeExtra < (readyAtAge ?? retireAge + 99)
-              ? 'bg-green-900/20 text-green-400 border border-green-800/40'
+              ? 'bg-green-900/20 text-accent border border-green-800/40'
               : 'bg-surface-700/50 text-surface-300'
           }`}>
             <CheckCircle size={13} />
@@ -1128,7 +1128,7 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
               width={72}
             />
             <Tooltip
-              contentStyle={{ background: '#1e293b', border: '1px solid #334155', fontSize: 12 }}
+              contentStyle={{ background: '#333', border: '1px solid #334155', fontSize: 12 }}
               formatter={(v: number, name: string) => [fmt(v), name]}
               labelFormatter={v => `Age ${v}`}
             />
@@ -1202,16 +1202,16 @@ function RetirementTab({ incomes, accounts, savings, employerRrsp, assumptions }
                     onClick={() => setRetireAge(age)}>
                     <td className="px-4 py-2.5 font-semibold text-surface-200">
                       {age}
-                      {isSel && <span className="ml-2 text-[10px] text-blue-400 font-normal">← selected</span>}
+                      {isSel && <span className="ml-2 text-[10px] text-accent font-normal">← selected</span>}
                     </td>
                     <td className="px-4 py-2.5 text-right text-surface-400">{Math.max(0, age - currentAge)}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-surface-300">{fmt(c.targetAnnual)}/yr</td>
                     <td className="px-4 py-2.5 text-right font-mono text-surface-300">{fmtBig(c.egg)}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-surface-300">{fmtBig(c.proj)}</td>
-                    <td className={`px-4 py-2.5 text-right font-mono font-semibold ${c.funded >= 100 ? 'text-green-400' : c.funded >= 75 ? 'text-amber-400' : 'text-red-400'}`}>
+                    <td className={`px-4 py-2.5 text-right font-mono font-semibold ${c.funded >= 100 ? 'text-accent' : c.funded >= 75 ? 'text-amber-400' : 'text-negative'}`}>
                       {Math.round(c.funded)}%
                     </td>
-                    <td className={`px-4 py-2.5 text-right font-mono ${c.additional <= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <td className={`px-4 py-2.5 text-right font-mono ${c.additional <= 0 ? 'text-accent' : 'text-negative'}`}>
                       {c.additional <= 0 ? '✓ on track' : `+${fmt(c.additional)}`}
                     </td>
                   </tr>
@@ -1240,7 +1240,7 @@ function Table({ headers, rows, onDelete }: { headers: string[]; rows: { id: num
           <tr key={r.id} className="hover:bg-surface-800/50">
             {r.cells.map((c, i) => <td key={i} className="px-3 py-2 font-mono text-xs">{c}</td>)}
             <td className="px-3 py-2 text-right">
-              <button onClick={() => onDelete(r.id)} className="text-surface-500 hover:text-red-400"><Trash2 size={13} /></button>
+              <button onClick={() => onDelete(r.id)} className="text-surface-500 hover:text-negative"><Trash2 size={13} /></button>
             </td>
           </tr>
         ))}
