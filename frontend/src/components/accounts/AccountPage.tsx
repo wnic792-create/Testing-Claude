@@ -32,8 +32,12 @@ export default function AccountPage() {
   const defaultProfileId = activeProfileId === 'all' ? profiles[0]?.id : activeProfileId
 
   const fetchAccounts = async () => {
-    const data = await api.get<Account[]>('/accounts')
-    setAccounts(data)
+    try {
+      const data = await api.get<Account[]>('/accounts')
+      setAccounts(data)
+    } catch {
+      // Auth errors redirect to login via the API client
+    }
   }
 
   useEffect(() => { fetchAccounts() }, [activeProfileId])

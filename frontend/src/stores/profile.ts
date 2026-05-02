@@ -21,14 +21,18 @@ export const useProfileStore = create<ProfileState>((set) => ({
   activeProfileId: 1,
   setActiveProfileId: (id) => set({ activeProfileId: id }),
   fetchProfiles: async () => {
-    const profiles = await api.getRaw<Profile[]>('/profiles')
-    set((state) => {
-      const ids = profiles.map(p => p.id)
-      const active = state.activeProfileId === 'all' || ids.includes(state.activeProfileId as number)
-        ? state.activeProfileId
-        : profiles[0]?.id ?? 1
-      return { profiles, activeProfileId: active }
-    })
+    try {
+      const profiles = await api.getRaw<Profile[]>('/profiles')
+      set((state) => {
+        const ids = profiles.map(p => p.id)
+        const active = state.activeProfileId === 'all' || ids.includes(state.activeProfileId as number)
+          ? state.activeProfileId
+          : profiles[0]?.id ?? 1
+        return { profiles, activeProfileId: active }
+      })
+    } catch {
+      // Auth errors redirect to login via the API client
+    }
   },
 }))
 

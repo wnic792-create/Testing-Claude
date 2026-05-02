@@ -74,18 +74,17 @@ export default function Dashboard() {
   const [autoPicked, setAutoPicked] = useState(false)
 
   const refresh = useCallback(() => {
-    api.get<Account[]>('/accounts').then(setAccounts)
-    api.get<Category[]>('/categories/flat').then(setCategories)
+    api.get<Account[]>('/accounts').then(setAccounts).catch(() => {})
+    api.get<Category[]>('/categories/flat').then(setCategories).catch(() => {})
     api.get<Snapshot[]>('/accounts/snapshots').then(setSnapshots).catch(() => setSnapshots([]))
 
-    // Pull last 13 months of transactions so the 12-month chart has room
     const since = new Date()
     since.setMonth(since.getMonth() - 13)
     const params = new URLSearchParams({
       date_from: since.toISOString().slice(0, 10),
       limit: '1000',
     })
-    api.get<Transaction[]>(`/transactions?${params}`).then(setTransactions)
+    api.get<Transaction[]>(`/transactions?${params}`).then(setTransactions).catch(() => {})
   }, [activeProfileId])
 
   useEffect(() => {
