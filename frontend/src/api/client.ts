@@ -14,7 +14,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     },
     ...options,
   })
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user_id')
     localStorage.removeItem('auth_username')
@@ -59,7 +59,7 @@ export const api = {
       body: formData,
       headers: { ...getAuthHeaders() },
     })
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       localStorage.removeItem('auth_token')
       localStorage.removeItem('auth_user_id')
       localStorage.removeItem('auth_username')

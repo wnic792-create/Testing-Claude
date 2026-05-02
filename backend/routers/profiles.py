@@ -24,7 +24,26 @@ class ProfileUpdate(BaseModel):
 
 @router.get("/")
 def list_profiles(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return db.query(Profile).filter(Profile.user_id == user.id).order_by(Profile.id).all()
+    profiles = db.query(Profile).filter(Profile.user_id == user.id).order_by(Profile.id).all()
+    if not profiles:
+        orphans = db.query(Profile).filter(Profile.user_id == None).all()
+        for p in orphans:
+            p.user_id = user.id
+        if orphans:
+            db.commit()
+            profiles = orphans
+        if not profiles:
+            new_profile = Profile(
+                user_id=user.id,
+                name="My Finances",
+                color="#00d632",
+                avatar_initial=user.username[0].upper() if user.username else "U",
+            )
+            db.add(new_profile)
+            db.commit()
+            db.refresh(new_profile)
+            profiles = [new_profile]
+    return profiles
 
 
 @router.post("/", status_code=201)
