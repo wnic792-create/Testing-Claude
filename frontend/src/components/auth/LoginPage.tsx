@@ -39,7 +39,9 @@ export default function LoginPage() {
       }
 
       const data = await res.json()
+      console.log('[Auth] Login success, token:', data.access_token?.substring(0, 20) + '...')
       login(data.access_token, data.user_id, data.username)
+      console.log('[Auth] Stored token:', localStorage.getItem('auth_token')?.substring(0, 20) + '...')
       navigate('/')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

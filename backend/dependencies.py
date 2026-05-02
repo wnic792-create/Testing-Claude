@@ -1,5 +1,4 @@
-from typing import Optional
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from backend.database import get_db
@@ -7,15 +6,13 @@ from backend.models.user import User
 from backend.models.profile import Profile
 from backend.services.auth import verify_token
 
-security = HTTPBearer(auto_error=False)
+security = HTTPBearer()
 
 
 def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
-    if not credentials:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
     payload = verify_token(credentials.credentials)
     if not payload:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")

@@ -5,6 +5,7 @@ from backend.database import get_db
 from backend.models.user import User
 from backend.models.profile import Profile
 from backend.services.auth import hash_password, verify_password, create_token
+from backend.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -71,3 +72,8 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 
     token = create_token(user.id, user.username)
     return TokenResponse(access_token=token, user_id=user.id, username=user.username)
+
+
+@router.get("/me")
+def get_me(user: User = Depends(get_current_user)):
+    return {"id": user.id, "username": user.username, "email": user.email}

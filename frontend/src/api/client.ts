@@ -6,15 +6,21 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders(),
-      ...options?.headers,
-    },
-    ...options,
-  })
+  const { headers: optHeaders, ...restOptions } = options ?? {}
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...getAuthHeaders(),
+    ...(optHeaders as Record<string, string> ?? {}),
+  }
+
+  console.log(`[API] ${restOptions.method ?? 'GET'} ${path}`, { hasAuth: 'Authorization' in headers })
+
+  const res = await fetch(`${API_BASE}${path}`, { ...restOptions, headers })
+
+  console.log(`[API] ${path} → ${res.status}`)
+
   if (res.status === 401) {
+    console.warn('[API] 401 received, clearing auth and redirecting to /login')
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user_id')
     localStorage.removeItem('auth_username')
