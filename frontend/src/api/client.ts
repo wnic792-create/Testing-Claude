@@ -3,12 +3,8 @@ import { useAuthStore } from '../stores/auth'
 const API_BASE = '/api'
 
 function getAuthHeaders(): Record<string, string> {
-  const token = useAuthStore.getState().token
+  const token = localStorage.getItem('auth_token')
   return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
-function handleUnauthorized() {
-  useAuthStore.getState().logout()
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -21,13 +17,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   const res = await fetch(`${API_BASE}${path}`, { ...restOptions, headers })
 
-  if (res.status === 401 || res.status === 403) {
-    const body = await res.json().catch(() => ({ detail: '' }))
-    if (body.detail === 'Not authenticated' || body.detail === 'Invalid or expired token' || body.detail === 'User not found') {
-      handleUnauthorized()
-      throw new Error('Session expired — please log in again')
-    }
-    throw new Error(body.detail || `HTTP ${res.status}`)
+  if (res.status === 401) {
+    useAuthStore.getState().logout()
+    throw new Error('Session expired')
   }
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }))
@@ -65,13 +57,9 @@ export const api = {
       body: formData,
       headers: { ...getAuthHeaders() },
     })
-    if (res.status === 401 || res.status === 403) {
-      const body = await res.json().catch(() => ({ detail: '' }))
-      if (body.detail === 'Not authenticated' || body.detail === 'Invalid or expired token' || body.detail === 'User not found') {
-        handleUnauthorized()
-        throw new Error('Session expired — please log in again')
-      }
-      throw new Error(body.detail || `HTTP ${res.status}`)
+    if (res.status === 401) {
+      useAuthStore.getState().logout()
+      throw new Error('Session expired')
     }
     if (!res.ok) {
       const error = await res.json().catch(() => ({ detail: res.statusText }))
