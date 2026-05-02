@@ -17,7 +17,7 @@ router = APIRouter()
 
 class HoldingCreate(BaseModel):
     account_id: int
-    profile_id: int = 1
+    profile_id: Optional[int] = None
     name: str
     ticker: Optional[str] = None
     fund_code: Optional[str] = None
@@ -56,9 +56,7 @@ def list_holdings(
     pids: list[int] = Depends(get_user_profile_ids),
 ):
     query = db.query(Holding).filter(Holding.profile_id.in_(pids))
-    if profile_id is not None:
-        if profile_id not in pids:
-            raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if profile_id is not None and profile_id in pids:
         query = query.filter(Holding.profile_id == profile_id)
     if account_id is not None:
         query = query.filter(Holding.account_id == account_id)
@@ -72,8 +70,8 @@ def create_holding(
     user: User = Depends(get_current_user),
     pids: list[int] = Depends(get_user_profile_ids),
 ):
-    if data.profile_id not in pids:
-        raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if not data.profile_id or data.profile_id not in pids:
+        data.profile_id = pids[0]
     if data.fund_code and not data.allocation_json:
         fund = lookup_fund(data.fund_code)
         if fund:
@@ -93,9 +91,7 @@ def portfolio_lookthrough(
     pids: list[int] = Depends(get_user_profile_ids),
 ):
     query = db.query(Holding).filter(Holding.profile_id.in_(pids))
-    if profile_id is not None:
-        if profile_id not in pids:
-            raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if profile_id is not None and profile_id in pids:
         query = query.filter(Holding.profile_id == profile_id)
     holdings = query.all()
 

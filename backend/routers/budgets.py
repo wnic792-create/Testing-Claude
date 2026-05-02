@@ -18,7 +18,7 @@ class BudgetCreate(BaseModel):
     year_month: str
     amount: float
     rollover: bool = False
-    profile_id: int = 1
+    profile_id: Optional[int] = None
 
 
 class BudgetUpdate(BaseModel):
@@ -41,9 +41,7 @@ def list_budgets(
     pids: list[int] = Depends(get_user_profile_ids),
 ):
     query = db.query(Budget).filter(Budget.profile_id.in_(pids))
-    if profile_id is not None:
-        if profile_id not in pids:
-            raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if profile_id is not None and profile_id in pids:
         query = query.filter(Budget.profile_id == profile_id)
     if year_month:
         query = query.filter(Budget.year_month == year_month)
@@ -57,8 +55,8 @@ def create_budget(
     user: User = Depends(get_current_user),
     pids: list[int] = Depends(get_user_profile_ids),
 ):
-    if budget.profile_id not in pids:
-        raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if not budget.profile_id or budget.profile_id not in pids:
+        budget.profile_id = pids[0]
     # Upsert: update if exists for this category+month
     existing = db.query(Budget).filter(
         Budget.category_id == budget.category_id,
@@ -201,9 +199,7 @@ def budget_variance(
 
     # Get all budgets for this month, scoped to user's profiles
     bq = db.query(Budget).filter(Budget.year_month == year_month, Budget.profile_id.in_(pids))
-    if profile_id is not None:
-        if profile_id not in pids:
-            raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if profile_id is not None and profile_id in pids:
         bq = bq.filter(Budget.profile_id == profile_id)
     budgets = bq.all()
 

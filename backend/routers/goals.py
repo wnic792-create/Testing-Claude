@@ -41,9 +41,7 @@ def list_goals(
     query = db.query(Goal).join(Scenario, Goal.scenario_id == Scenario.id).filter(Scenario.profile_id.in_(pids))
     if scenario_id:
         query = query.filter(Goal.scenario_id == scenario_id)
-    if profile_id is not None:
-        if profile_id not in pids:
-            raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if profile_id is not None and profile_id in pids:
         query = query.filter(Scenario.profile_id == profile_id)
     return query.all()
 

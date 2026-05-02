@@ -19,7 +19,7 @@ class ScenarioCreate(BaseModel):
     name: str
     description: Optional[str] = None
     color: str = "#3B82F6"
-    profile_id: int = 1
+    profile_id: Optional[int] = None
 
 
 class ScenarioUpdate(BaseModel):
@@ -36,9 +36,7 @@ def list_scenarios(
     pids: list[int] = Depends(get_user_profile_ids),
 ):
     query = db.query(Scenario).filter(Scenario.profile_id.in_(pids))
-    if profile_id is not None:
-        if profile_id not in pids:
-            raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if profile_id is not None and profile_id in pids:
         query = query.filter(Scenario.profile_id == profile_id)
     return query.all()
 
@@ -58,8 +56,8 @@ def create_scenario(
     user: User = Depends(get_current_user),
     pids: list[int] = Depends(get_user_profile_ids),
 ):
-    if scenario.profile_id not in pids:
-        raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if not scenario.profile_id or scenario.profile_id not in pids:
+        scenario.profile_id = pids[0]
     db_scenario = Scenario(**scenario.model_dump())
     db.add(db_scenario)
     db.commit()

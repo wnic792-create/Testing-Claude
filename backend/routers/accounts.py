@@ -15,7 +15,7 @@ router = APIRouter()
 class AccountCreate(BaseModel):
     name: str
     type: str
-    profile_id: int = 1
+    profile_id: Optional[int] = None
     currency: str = "CAD"
     institution: Optional[str] = None
     current_balance: float = 0.0
@@ -67,8 +67,8 @@ def create_snapshot(profile_id: Optional[int] = None, db: Session = Depends(get_
 
 @router.post("/", status_code=201)
 def create_account(account: AccountCreate, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
-    if account.profile_id not in pids:
-        raise HTTPException(403, "Profile does not belong to you")
+    if not account.profile_id or account.profile_id not in pids:
+        account.profile_id = pids[0]
     db_account = Account(**account.model_dump())
     db.add(db_account)
     db.commit()

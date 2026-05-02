@@ -70,9 +70,7 @@ def list_transactions(
     pids: list[int] = Depends(get_user_profile_ids),
 ):
     query = db.query(Transaction).join(Account, Transaction.account_id == Account.id).filter(Account.profile_id.in_(pids))
-    if profile_id is not None:
-        if profile_id not in pids:
-            raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if profile_id is not None and profile_id in pids:
         query = query.filter(Account.profile_id == profile_id)
     if account_id:
         query = query.filter(Transaction.account_id == account_id)

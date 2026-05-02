@@ -17,7 +17,7 @@ class RecurringCreate(BaseModel):
     account_id: int
     description: str
     amount: float
-    profile_id: int = 1
+    profile_id: Optional[int] = None
     currency: str = "CAD"
     category_id: Optional[int] = None
     frequency: str  # weekly | biweekly | monthly | quarterly | annual
@@ -69,9 +69,7 @@ def list_recurring(
     pids: list[int] = Depends(get_user_profile_ids),
 ):
     query = db.query(RecurringTransaction).filter(RecurringTransaction.profile_id.in_(pids))
-    if profile_id is not None:
-        if profile_id not in pids:
-            raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if profile_id is not None and profile_id in pids:
         query = query.filter(RecurringTransaction.profile_id == profile_id)
     return query.order_by(RecurringTransaction.next_date).all()
 
@@ -83,8 +81,8 @@ def create_recurring(
     user: User = Depends(get_current_user),
     pids: list[int] = Depends(get_user_profile_ids),
 ):
-    if data.profile_id not in pids:
-        raise HTTPException(status_code=403, detail="Access denied to this profile")
+    if not data.profile_id or data.profile_id not in pids:
+        data.profile_id = pids[0]
     obj = RecurringTransaction(
         **data.model_dump(),
         next_date=data.start_date,
