@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Layout from './components/layout/Layout'
 import Dashboard from './components/layout/Dashboard'
@@ -28,10 +27,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const loadFromStorage = useAuthStore(s => s.loadFromStorage)
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
-
-  useEffect(() => { loadFromStorage() }, [loadFromStorage])
 
   return (
     <Routes>

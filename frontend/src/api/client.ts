@@ -1,8 +1,14 @@
+import { useAuthStore } from '../stores/auth'
+
 const API_BASE = '/api'
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('auth_token')
+  const token = useAuthStore.getState().token
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+function handleUnauthorized() {
+  useAuthStore.getState().logout()
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -13,21 +19,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...(optHeaders as Record<string, string> ?? {}),
   }
 
-  console.log(`[API] ${restOptions.method ?? 'GET'} ${path}`, { hasAuth: 'Authorization' in headers })
-
   const res = await fetch(`${API_BASE}${path}`, { ...restOptions, headers })
 
-  console.log(`[API] ${path} → ${res.status}`)
-
-  if (res.status === 401) {
-    console.warn('[API] 401 received, clearing auth and redirecting to /login')
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('auth_user_id')
-    localStorage.removeItem('auth_username')
-    if (window.location.pathname !== '/login') {
-      window.location.href = '/login'
+  if (res.status === 401 || res.status === 403) {
+    const body = await res.json().catch(() => ({ detail: '' }))
+    if (body.detail === 'Not authenticated' || body.detail === 'Invalid or expired token' || body.detail === 'User not found') {
+      handleUnauthorized()
+      throw new Error('Session expired — please log in again')
     }
-    throw new Error('Not authenticated — please log in')
+    throw new Error(body.detail || `HTTP ${res.status}`)
   }
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }))
@@ -65,14 +65,13 @@ export const api = {
       body: formData,
       headers: { ...getAuthHeaders() },
     })
-    if (res.status === 401) {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('auth_user_id')
-      localStorage.removeItem('auth_username')
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+    if (res.status === 401 || res.status === 403) {
+      const body = await res.json().catch(() => ({ detail: '' }))
+      if (body.detail === 'Not authenticated' || body.detail === 'Invalid or expired token' || body.detail === 'User not found') {
+        handleUnauthorized()
+        throw new Error('Session expired — please log in again')
       }
-      throw new Error('Not authenticated — please log in')
+      throw new Error(body.detail || `HTTP ${res.status}`)
     }
     if (!res.ok) {
       const error = await res.json().catch(() => ({ detail: res.statusText }))

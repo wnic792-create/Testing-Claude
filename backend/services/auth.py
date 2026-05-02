@@ -5,9 +5,8 @@ import hmac
 import json
 import base64
 import time
-from datetime import datetime, timedelta
 
-_SECRET_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", ".secret_key")
+_SECRET_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", ".secret_key")
 
 def _get_secret_key() -> str:
     env = os.environ.get("SECRET_KEY")
@@ -52,12 +51,13 @@ def _b64decode(s: str) -> bytes:
 
 
 def create_token(user_id: int, username: str) -> str:
+    now = time.time()
     header = _b64encode(json.dumps({"alg": ALGORITHM, "typ": "JWT"}).encode())
     payload_data = {
         "sub": str(user_id),
         "username": username,
-        "exp": int((datetime.utcnow() + timedelta(hours=TOKEN_EXPIRY_HOURS)).timestamp()),
-        "iat": int(datetime.utcnow().timestamp()),
+        "exp": int(now + TOKEN_EXPIRY_HOURS * 3600),
+        "iat": int(now),
     }
     payload = _b64encode(json.dumps(payload_data).encode())
     signing_input = f"{header}.{payload}"
