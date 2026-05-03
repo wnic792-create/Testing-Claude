@@ -86,4 +86,11 @@ app.include_router(holdings.router, prefix="/api/holdings", tags=["holdings"])
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    from backend.services.auth import create_token, verify_token, SECRET_KEY
+    token = create_token(0, "healthcheck")
+    verified = verify_token(token)
+    return {
+        "status": "ok",
+        "auth_works": verified is not None,
+        "key_len": len(SECRET_KEY),
+    }

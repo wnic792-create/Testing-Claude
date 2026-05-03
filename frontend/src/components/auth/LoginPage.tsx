@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Wallet, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '../../stores/auth'
 
@@ -12,13 +12,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
+  const [backendOk, setBackendOk] = useState<boolean | null>(null)
   const navigate = useNavigate()
+  const location = useLocation()
   const login = useAuthStore(s => s.login)
+
+  useEffect(() => {
+    fetch(`${API_BASE}/health`)
+      .then(r => r.json())
+      .then(d => setBackendOk(d.status === 'ok'))
+      .catch(() => setBackendOk(false))
+  }, [])
+
+  const wasRedirected = location.state?.from?.pathname && location.state.from.pathname !== '/login'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setStatus('')
     setLoading(true)
 
     try {
@@ -27,11 +40,14 @@ export default function LoginPage() {
         ? { username, email, password }
         : { username, password }
 
+      setStatus('Sending request...')
       const res = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
+
+      setStatus(`Server responded: ${res.status}`)
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ detail: 'Request failed' }))
@@ -39,10 +55,27 @@ export default function LoginPage() {
       }
 
       const data = await res.json()
+      setStatus('Token received, storing...')
+
+      if (!data.access_token) {
+        throw new Error('No token in response')
+      }
+
       login(data.access_token, data.user_id, data.username)
+      setStatus('Stored! Navigating to app...')
+
+      // Verify the token works before navigating
+      const testRes = await fetch(`${API_BASE}/auth/me`, {
+        headers: { Authorization: `Bearer ${data.access_token}` },
+      })
+      if (!testRes.ok) {
+        throw new Error(`Token verification failed: ${testRes.status} — the token was created but the server can't verify it. This usually means the server restarted with a different secret key.`)
+      }
+
       navigate('/')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatus('')
     } finally {
       setLoading(false)
     }
@@ -62,9 +95,28 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-surface-900 border border-surface-800 rounded-2xl p-7">
+          {/* Backend status */}
+          {backendOk === false && (
+            <div className="mb-5 px-4 py-3 rounded-xl bg-negative/10 border border-negative/20 text-negative text-sm">
+              Backend is not reachable. Make sure the server is running on port 8000.
+            </div>
+          )}
+
+          {wasRedirected && (
+            <div className="mb-5 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm">
+              You were redirected back from the app. Your session may have expired.
+            </div>
+          )}
+
           {error && (
             <div className="mb-5 px-4 py-3 rounded-xl bg-negative/10 border border-negative/20 text-negative text-sm">
               {error}
+            </div>
+          )}
+
+          {status && !error && (
+            <div className="mb-5 px-4 py-3 rounded-xl bg-accent/10 border border-accent/20 text-accent text-sm">
+              {status}
             </div>
           )}
 
@@ -128,7 +180,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || backendOk === false}
               className="btn-primary w-full py-3 disabled:opacity-50"
             >
               {loading ? 'Please wait...' : isRegister ? 'Create Account' : 'Sign In'}
@@ -137,7 +189,7 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-6 border-t border-surface-800 text-center">
             <button
-              onClick={() => { setIsRegister(!isRegister); setError('') }}
+              onClick={() => { setIsRegister(!isRegister); setError(''); setStatus('') }}
               className="text-sm text-surface-400 hover:text-white transition-colors"
             >
               {isRegister ? 'Already have an account? Sign in' : "Don't have an account? Register"}

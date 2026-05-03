@@ -15,14 +15,18 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     if credentials is None:
+        print("[AUTH] No credentials provided — returning 401")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
     payload = verify_token(credentials.credentials)
     if not payload:
+        print(f"[AUTH] Token verification FAILED — token starts with: {credentials.credentials[:30]}...")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
     user_id = int(payload["sub"])
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.is_active:
+        print(f"[AUTH] User {user_id} not found or inactive")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found")
+    print(f"[AUTH] Authenticated user: {user.username} (id={user.id})")
     return user
 
 
