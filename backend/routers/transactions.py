@@ -5,8 +5,7 @@ from typing import Optional, List
 from backend.database import get_db
 from backend.models.transaction import Transaction
 from backend.models.account import Account
-from backend.models.user import User
-from backend.dependencies import get_current_user, get_user_profile_ids
+from backend.dependencies import get_profile_ids
 from backend.services.categorization import learn_from_correction, auto_categorize, categorize_batch
 from backend.services.recurring_detector import detect_recurring
 from backend.services import account_balance
@@ -66,8 +65,7 @@ def list_transactions(
     limit: int = Query(default=100, le=1000),
     offset: int = 0,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     query = db.query(Transaction).join(Account, Transaction.account_id == Account.id).filter(Account.profile_id.in_(pids))
     if profile_id is not None and profile_id in pids:
@@ -93,8 +91,7 @@ def list_transactions(
 def create_transaction(
     tx: TransactionCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     # Verify the account belongs to the user
     acct = db.query(Account).filter(Account.id == tx.account_id, Account.profile_id.in_(pids)).first()
@@ -117,8 +114,7 @@ def create_transaction(
 def detect_recurring_transactions(
     account_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     """Detect potential recurring transactions (subscriptions)."""
     if account_id:
@@ -131,8 +127,7 @@ def detect_recurring_transactions(
 @router.post("/categorize-uncategorized")
 def categorize_uncategorized(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     """Run auto-categorization across all transactions that currently have no category."""
     txs = (
@@ -149,8 +144,7 @@ def categorize_uncategorized(
 @router.post("/recategorize-all")
 def recategorize_all(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     """
     Re-run categorization against every transaction using the current rules
@@ -175,8 +169,7 @@ def bulk_delete(
     date_to: Optional[str] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     """Delete all transactions matching the given filters. Returns count deleted."""
     query = db.query(Transaction).join(Account, Transaction.account_id == Account.id).filter(Account.profile_id.in_(pids))
@@ -202,8 +195,7 @@ def bulk_delete(
 def create_transfer(
     body: TransferCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     """
     Atomically create a linked pair of transactions representing an internal transfer.
@@ -263,8 +255,7 @@ def create_transfer(
 def get_transaction(
     tx_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     tx = (
         db.query(Transaction)
@@ -282,8 +273,7 @@ def update_transaction(
     tx_id: int,
     updates: TransactionUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     tx = (
         db.query(Transaction)
@@ -346,8 +336,7 @@ def update_transaction(
 def delete_transaction(
     tx_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     tx = (
         db.query(Transaction)
@@ -377,8 +366,7 @@ def split_transaction(
     tx_id: int,
     splits: List[SplitItem],
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+    pids: list[int] = Depends(get_profile_ids),
 ):
     tx = (
         db.query(Transaction)

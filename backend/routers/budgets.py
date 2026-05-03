@@ -7,8 +7,7 @@ from backend.database import get_db
 from backend.models.budget import Budget
 from backend.models.transaction import Transaction
 from backend.models.category import Category
-from backend.models.user import User
-from backend.dependencies import get_current_user, get_user_profile_ids
+from backend.dependencies import get_profile_ids
 
 router = APIRouter()
 
@@ -37,8 +36,8 @@ def list_budgets(
     year_month: Optional[str] = None,
     profile_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     query = db.query(Budget).filter(Budget.profile_id.in_(pids))
     if profile_id is not None and profile_id in pids:
@@ -52,8 +51,8 @@ def list_budgets(
 def create_budget(
     budget: BudgetCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     if not budget.profile_id or budget.profile_id not in pids:
         budget.profile_id = pids[0]
@@ -81,8 +80,8 @@ def set_budgets_bulk(
     year_month: str,
     items: list[BudgetBulkItem],
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     """Set multiple budgets at once for a given month."""
     results = []
@@ -115,8 +114,8 @@ def copy_budgets(
     from_month: str,
     to_month: str,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     """Copy all budgets from one month to another."""
     source = db.query(Budget).filter(Budget.year_month == from_month, Budget.profile_id.in_(pids)).all()
@@ -149,8 +148,8 @@ def update_budget(
     budget_id: int,
     updates: BudgetUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     budget = db.query(Budget).filter(Budget.id == budget_id, Budget.profile_id.in_(pids)).first()
     if not budget:
@@ -166,8 +165,8 @@ def update_budget(
 def delete_budget(
     budget_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     budget = db.query(Budget).filter(Budget.id == budget_id, Budget.profile_id.in_(pids)).first()
     if not budget:
@@ -181,8 +180,8 @@ def budget_variance(
     year_month: str,
     profile_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     """
     Compute budget vs actual spending per category for a given month.

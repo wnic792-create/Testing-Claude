@@ -5,8 +5,7 @@ from typing import Optional
 from backend.database import get_db
 from backend.models.goal import Goal
 from backend.models.scenario import Scenario
-from backend.models.user import User
-from backend.dependencies import get_current_user, get_user_profile_ids
+from backend.dependencies import get_profile_ids
 
 router = APIRouter()
 
@@ -35,8 +34,8 @@ def list_goals(
     scenario_id: Optional[int] = None,
     profile_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     query = db.query(Goal).join(Scenario, Goal.scenario_id == Scenario.id).filter(Scenario.profile_id.in_(pids))
     if scenario_id:
@@ -50,8 +49,8 @@ def list_goals(
 def create_goal(
     goal: GoalCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     # Verify the scenario belongs to the user
     scenario = db.query(Scenario).filter(Scenario.id == goal.scenario_id, Scenario.profile_id.in_(pids)).first()
@@ -69,8 +68,8 @@ def update_goal(
     goal_id: int,
     updates: GoalUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     goal = (
         db.query(Goal)
@@ -91,8 +90,8 @@ def update_goal(
 def delete_goal(
     goal_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     goal = (
         db.query(Goal)

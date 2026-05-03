@@ -6,8 +6,6 @@ from backend.database import get_db
 from backend.models.category import Category, CategorizationRule
 from backend.models.transaction import Transaction
 from backend.services.transfer_pairing import backfill_transfers_for_category
-from backend.models.user import User
-from backend.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -45,7 +43,7 @@ class RuleUpdate(BaseModel):
 @router.get("/")
 def list_categories(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     cats = db.query(Category).all()
     # Build hierarchical structure
@@ -78,7 +76,7 @@ def list_categories(
 @router.get("/flat")
 def list_categories_flat(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     return db.query(Category).all()
 
@@ -87,7 +85,7 @@ def list_categories_flat(
 def create_category(
     category: CategoryCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     db_cat = Category(**category.model_dump())
     db.add(db_cat)
@@ -101,7 +99,7 @@ def update_category(
     category_id: int,
     updates: CategoryUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     cat = db.query(Category).filter(Category.id == category_id).first()
     if not cat:
@@ -117,7 +115,7 @@ def update_category(
 def count_transfer_candidates(
     category_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     """
     Count existing single-leg outflow transactions in this category that could
@@ -144,7 +142,7 @@ def count_transfer_candidates(
 def apply_transfers(
     category_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     """
     Retroactively convert every eligible single-leg outflow in this category
@@ -167,7 +165,7 @@ def apply_transfers(
 def delete_category(
     category_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     cat = db.query(Category).filter(Category.id == category_id).first()
     if not cat:
@@ -183,7 +181,7 @@ def delete_category(
 @router.get("/rules")
 def list_rules(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     return db.query(CategorizationRule).order_by(CategorizationRule.priority.desc()).all()
 
@@ -192,7 +190,7 @@ def list_rules(
 def create_rule(
     rule: RuleCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     db_rule = CategorizationRule(**rule.model_dump(), source="manual")
     db.add(db_rule)
@@ -206,7 +204,7 @@ def update_rule(
     rule_id: int,
     updates: RuleUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     rule = db.query(CategorizationRule).filter(CategorizationRule.id == rule_id).first()
     if not rule:
@@ -222,7 +220,7 @@ def update_rule(
 def delete_rule(
     rule_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     rule = db.query(CategorizationRule).filter(CategorizationRule.id == rule_id).first()
     if not rule:

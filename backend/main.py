@@ -17,9 +17,8 @@ import backend.models.settings
 import backend.models.recurring
 import backend.models.profile
 import backend.models.holding
-import backend.models.user
 
-from backend.routers import accounts, transactions, categories, import_export, budgets, forecast, scenarios, goals, backup, recurring, profiles, holdings, auth
+from backend.routers import accounts, transactions, categories, import_export, budgets, forecast, scenarios, goals, backup, recurring, profiles, holdings
 from backend.database import SessionLocal
 from backend.services.category_seeder import seed_categories
 from backend.services.migrations import run_migrations
@@ -70,7 +69,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"])
 app.include_router(categories.router, prefix="/api/categories", tags=["categories"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["transactions"])
@@ -86,11 +84,4 @@ app.include_router(holdings.router, prefix="/api/holdings", tags=["holdings"])
 
 @app.get("/api/health")
 def health():
-    from backend.services.auth import create_token, verify_token, SECRET_KEY
-    token = create_token(0, "healthcheck")
-    verified = verify_token(token)
-    return {
-        "status": "ok",
-        "auth_works": verified is not None,
-        "key_len": len(SECRET_KEY),
-    }
+    return {"status": "ok"}

@@ -31,7 +31,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
         return { profiles, activeProfileId: active }
       })
     } catch {
-      // Auth errors redirect to login via the API client
+      // ignore fetch errors
     }
   },
 }))

@@ -18,11 +18,8 @@ import {
   ChevronDown,
   Check,
   LineChart,
-  LogOut,
 } from 'lucide-react'
-import { useThemeStore } from '../../stores/theme'
 import { useProfileStore } from '../../stores/profile'
-import { useAuthStore } from '../../stores/auth'
 
 const NAV_SECTIONS = [
   {
@@ -66,7 +63,6 @@ export default function Sidebar() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
-  const { username, logout } = useAuthStore()
 
   const toggleLang = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'fr' : 'en')
@@ -219,19 +215,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-surface-800 p-4 space-y-3">
-        {username && (
-          <div className="flex items-center justify-between px-3">
-            <span className="text-[12px] text-surface-400 truncate">{username}</span>
-            <button
-              onClick={() => { logout(); navigate('/login') }}
-              className="text-surface-500 hover:text-negative transition-colors p-1.5 rounded-lg hover:bg-surface-800"
-              title="Sign out"
-            >
-              <LogOut size={14} />
-            </button>
-          </div>
-        )}
+      <div className="border-t border-surface-800 p-4">
         <button
           onClick={toggleLang}
           className="w-full text-[12px] text-surface-500 hover:text-surface-300 py-2 rounded-xl hover:bg-surface-800 transition-all duration-200 font-semibold"

@@ -4,8 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from backend.database import get_db
 from backend.models.account import Account
-from backend.models.user import User
-from backend.dependencies import get_current_user, get_user_profile_ids
+from backend.dependencies import get_profile_ids
 from backend.services.snapshot_service import take_snapshot, get_snapshot_history
 from backend.services.account_balance import rebase_from_transactions
 
@@ -48,7 +47,7 @@ class AccountUpdate(BaseModel):
 
 
 @router.get("/")
-def list_accounts(profile_id: Optional[int] = None, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+def list_accounts(profile_id: Optional[int] = None, db: Session = Depends(get_db), pids: list[int] = Depends(get_profile_ids)):
     query = db.query(Account).filter(Account.profile_id.in_(pids))
     if profile_id is not None:
         query = query.filter(Account.profile_id == profile_id)
@@ -56,17 +55,17 @@ def list_accounts(profile_id: Optional[int] = None, db: Session = Depends(get_db
 
 
 @router.get("/snapshots")
-def list_snapshots(profile_id: Optional[int] = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def list_snapshots(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
     return get_snapshot_history(db, profile_id=profile_id)
 
 
 @router.post("/snapshots", status_code=201)
-def create_snapshot(profile_id: Optional[int] = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def create_snapshot(profile_id: Optional[int] = None, db: Session = Depends(get_db)):
     return take_snapshot(db, profile_id=profile_id)
 
 
 @router.post("/", status_code=201)
-def create_account(account: AccountCreate, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+def create_account(account: AccountCreate, db: Session = Depends(get_db), pids: list[int] = Depends(get_profile_ids)):
     if not account.profile_id or account.profile_id not in pids:
         account.profile_id = pids[0]
     db_account = Account(**account.model_dump())
@@ -77,7 +76,7 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db), pids: 
 
 
 @router.get("/{account_id}")
-def get_account(account_id: int, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+def get_account(account_id: int, db: Session = Depends(get_db), pids: list[int] = Depends(get_profile_ids)):
     account = db.query(Account).filter(Account.id == account_id, Account.profile_id.in_(pids)).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
@@ -85,7 +84,7 @@ def get_account(account_id: int, db: Session = Depends(get_db), pids: list[int] 
 
 
 @router.patch("/{account_id}")
-def update_account(account_id: int, updates: AccountUpdate, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+def update_account(account_id: int, updates: AccountUpdate, db: Session = Depends(get_db), pids: list[int] = Depends(get_profile_ids)):
     account = db.query(Account).filter(Account.id == account_id, Account.profile_id.in_(pids)).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
@@ -97,7 +96,7 @@ def update_account(account_id: int, updates: AccountUpdate, db: Session = Depend
 
 
 @router.delete("/{account_id}", status_code=204)
-def delete_account(account_id: int, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+def delete_account(account_id: int, db: Session = Depends(get_db), pids: list[int] = Depends(get_profile_ids)):
     account = db.query(Account).filter(Account.id == account_id, Account.profile_id.in_(pids)).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
@@ -110,7 +109,7 @@ class RecalculateRequest(BaseModel):
 
 
 @router.post("/{account_id}/recalculate")
-def recalculate_balance(account_id: int, body: RecalculateRequest, db: Session = Depends(get_db), pids: list[int] = Depends(get_user_profile_ids)):
+def recalculate_balance(account_id: int, body: RecalculateRequest, db: Session = Depends(get_db), pids: list[int] = Depends(get_profile_ids)):
     account = db.query(Account).filter(Account.id == account_id, Account.profile_id.in_(pids)).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")

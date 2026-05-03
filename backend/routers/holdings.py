@@ -5,8 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.holding import Holding
-from backend.models.user import User
-from backend.dependencies import get_current_user, get_user_profile_ids
+from backend.dependencies import get_profile_ids
 from backend.services.fund_data import (
     lookup_fund, search_funds, FUND_DATABASE,
     REGION_LABELS, REGION_COLORS, SECTOR_LABELS,
@@ -52,8 +51,8 @@ def list_holdings(
     profile_id: Optional[int] = None,
     account_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     query = db.query(Holding).filter(Holding.profile_id.in_(pids))
     if profile_id is not None and profile_id in pids:
@@ -67,8 +66,8 @@ def list_holdings(
 def create_holding(
     data: HoldingCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     if not data.profile_id or data.profile_id not in pids:
         data.profile_id = pids[0]
@@ -87,8 +86,8 @@ def create_holding(
 def portfolio_lookthrough(
     profile_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     query = db.query(Holding).filter(Holding.profile_id.in_(pids))
     if profile_id is not None and profile_id in pids:
@@ -151,17 +150,17 @@ def portfolio_lookthrough(
 
 
 @router.get("/funds")
-def list_all_funds(user: User = Depends(get_current_user)):
+def list_all_funds():
     return [{"code": code, **data} for code, data in FUND_DATABASE.items()]
 
 
 @router.get("/funds/search")
-def search_fund_db(q: str = "", user: User = Depends(get_current_user)):
+def search_fund_db(q: str = ""):
     return search_funds(q)
 
 
 @router.get("/funds/{code}")
-def get_fund_info(code: str, user: User = Depends(get_current_user)):
+def get_fund_info(code: str):
     fund = lookup_fund(code)
     if not fund:
         raise HTTPException(404, "Fund not found in database")
@@ -175,8 +174,8 @@ def update_holding(
     holding_id: int,
     data: HoldingUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     h = db.query(Holding).filter(Holding.id == holding_id, Holding.profile_id.in_(pids)).first()
     if not h:
@@ -197,8 +196,8 @@ def update_holding(
 def delete_holding(
     holding_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     h = db.query(Holding).filter(Holding.id == holding_id, Holding.profile_id.in_(pids)).first()
     if not h:

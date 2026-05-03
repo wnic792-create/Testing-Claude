@@ -7,8 +7,7 @@ from backend.database import get_db
 from backend.models.recurring import RecurringTransaction
 from backend.models.transaction import Transaction
 from backend.services import account_balance
-from backend.models.user import User
-from backend.dependencies import get_current_user, get_user_profile_ids
+from backend.dependencies import get_profile_ids
 
 router = APIRouter()
 
@@ -65,8 +64,8 @@ def advance_date(current: str, frequency: str) -> str:
 def list_recurring(
     profile_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     query = db.query(RecurringTransaction).filter(RecurringTransaction.profile_id.in_(pids))
     if profile_id is not None and profile_id in pids:
@@ -78,8 +77,8 @@ def list_recurring(
 def create_recurring(
     data: RecurringCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     if not data.profile_id or data.profile_id not in pids:
         data.profile_id = pids[0]
@@ -98,8 +97,8 @@ def update_recurring(
     rule_id: int,
     data: RecurringUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     rule = db.query(RecurringTransaction).filter(
         RecurringTransaction.id == rule_id, RecurringTransaction.profile_id.in_(pids)
@@ -117,8 +116,8 @@ def update_recurring(
 def delete_recurring(
     rule_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     rule = db.query(RecurringTransaction).filter(
         RecurringTransaction.id == rule_id, RecurringTransaction.profile_id.in_(pids)
@@ -133,8 +132,8 @@ def delete_recurring(
 def skip_next(
     rule_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     """Skip the next occurrence — advance next_date without creating a transaction."""
     rule = db.query(RecurringTransaction).filter(
@@ -153,8 +152,8 @@ def skip_next(
 @router.post("/execute")
 def execute_due(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     """Create real transactions for all active recurring rules that are due today or earlier."""
     today = datetime.date.today().isoformat()

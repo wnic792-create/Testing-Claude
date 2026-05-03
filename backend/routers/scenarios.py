@@ -9,8 +9,7 @@ from backend.models.forecast import (
     OneOffEvent, DebtAccount, CreditCardDebt, SavingsContribution,
     EmployerRRSPMatch,
 )
-from backend.models.user import User
-from backend.dependencies import get_current_user, get_user_profile_ids
+from backend.dependencies import get_profile_ids
 
 router = APIRouter()
 
@@ -32,8 +31,8 @@ class ScenarioUpdate(BaseModel):
 def list_scenarios(
     profile_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     query = db.query(Scenario).filter(Scenario.profile_id.in_(pids))
     if profile_id is not None and profile_id in pids:
@@ -44,7 +43,7 @@ def list_scenarios(
 @router.get("/presets/stress-tests")
 def list_stress_test_presets(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     return db.query(StressTestPreset).all()
 
@@ -53,8 +52,8 @@ def list_stress_test_presets(
 def create_scenario(
     scenario: ScenarioCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     if not scenario.profile_id or scenario.profile_id not in pids:
         scenario.profile_id = pids[0]
@@ -73,8 +72,8 @@ def create_scenario(
 def get_scenario(
     scenario_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     scenario = db.query(Scenario).filter(Scenario.id == scenario_id, Scenario.profile_id.in_(pids)).first()
     if not scenario:
@@ -87,8 +86,8 @@ def update_scenario(
     scenario_id: int,
     updates: ScenarioUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     scenario = db.query(Scenario).filter(Scenario.id == scenario_id, Scenario.profile_id.in_(pids)).first()
     if not scenario:
@@ -104,8 +103,8 @@ def update_scenario(
 def delete_scenario(
     scenario_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     scenario = db.query(Scenario).filter(Scenario.id == scenario_id, Scenario.profile_id.in_(pids)).first()
     if not scenario:
@@ -128,8 +127,8 @@ def clone_scenario(
     scenario_id: int,
     name: Optional[str] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     original = db.query(Scenario).filter(Scenario.id == scenario_id, Scenario.profile_id.in_(pids)).first()
     if not original:
@@ -239,8 +238,8 @@ def apply_stress_test(
     scenario_id: int,
     preset_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    pids: list[int] = Depends(get_user_profile_ids),
+
+    pids: list[int] = Depends(get_profile_ids),
 ):
     scenario = db.query(Scenario).filter(Scenario.id == scenario_id, Scenario.profile_id.in_(pids)).first()
     if not scenario:

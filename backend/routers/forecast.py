@@ -11,8 +11,6 @@ from backend.models.forecast import (
 from backend.services.forecast_engine import run_forecast, rollup_forecast
 from backend.services.amortization import calculate_amortization
 from backend.services.tax_engine import calculate_annual_tax, calculate_rrsp_tax_savings
-from backend.models.user import User
-from backend.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -24,7 +22,7 @@ def tax_calculator(
     gross_income: float,
     income_type: str = "employment",
     year: str = "2025",
-    user: User = Depends(get_current_user),
+
 ):
     """Standalone tax calculator."""
     return calculate_annual_tax(gross_income, income_type)
@@ -34,7 +32,7 @@ def tax_calculator(
 def rrsp_calculator(
     contribution: float,
     marginal_income: float,
-    user: User = Depends(get_current_user),
+
 ):
     """Calculate RRSP contribution tax savings."""
     return calculate_rrsp_tax_savings(contribution, marginal_income)
@@ -46,7 +44,7 @@ def compare_scenarios(
     granularity: str = "monthly",
     horizon_months: int = 60,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     """Run forecast for multiple scenarios, return side-by-side."""
     horizon_months = max(12, min(horizon_months, 360))
@@ -67,7 +65,7 @@ def get_forecast(
     granularity: str = "monthly",
     horizon_months: int = 60,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     """Run forecast for a scenario."""
     horizon_months = max(12, min(horizon_months, 360))
@@ -83,7 +81,7 @@ def get_amortization_schedule(
     scenario_id: int,
     debt_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     """Generate full amortization schedule for a debt."""
     debt = db.query(DebtAccount).filter(
@@ -120,7 +118,7 @@ class AssumptionsUpdate(BaseModel):
 def get_assumptions(
     scenario_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     a = db.query(ForecastAssumptions).filter(
         ForecastAssumptions.scenario_id == scenario_id
@@ -135,7 +133,7 @@ def update_assumptions(
     scenario_id: int,
     updates: AssumptionsUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     a = db.query(ForecastAssumptions).filter(
         ForecastAssumptions.scenario_id == scenario_id
@@ -166,7 +164,7 @@ class IncomeStreamCreate(BaseModel):
 def list_incomes(
     scenario_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     return db.query(IncomeStream).filter(IncomeStream.scenario_id == scenario_id).all()
 
@@ -176,7 +174,7 @@ def create_income(
     scenario_id: int,
     data: IncomeStreamCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = IncomeStream(scenario_id=scenario_id, **data.model_dump())
     db.add(obj)
@@ -190,7 +188,7 @@ def delete_income(
     scenario_id: int,
     income_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = db.query(IncomeStream).filter(IncomeStream.id == income_id, IncomeStream.scenario_id == scenario_id).first()
     if not obj:
@@ -216,7 +214,7 @@ class RecurringExpenseCreate(BaseModel):
 def list_expenses(
     scenario_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     return db.query(RecurringExpense).filter(RecurringExpense.scenario_id == scenario_id).all()
 
@@ -226,7 +224,7 @@ def create_expense(
     scenario_id: int,
     data: RecurringExpenseCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = RecurringExpense(scenario_id=scenario_id, **data.model_dump())
     db.add(obj)
@@ -240,7 +238,7 @@ def delete_expense(
     scenario_id: int,
     expense_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = db.query(RecurringExpense).filter(RecurringExpense.id == expense_id, RecurringExpense.scenario_id == scenario_id).first()
     if not obj:
@@ -264,7 +262,7 @@ class OneOffEventCreate(BaseModel):
 def list_events(
     scenario_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     return db.query(OneOffEvent).filter(OneOffEvent.scenario_id == scenario_id).all()
 
@@ -274,7 +272,7 @@ def create_event(
     scenario_id: int,
     data: OneOffEventCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = OneOffEvent(scenario_id=scenario_id, **data.model_dump())
     db.add(obj)
@@ -288,7 +286,7 @@ def delete_event(
     scenario_id: int,
     event_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = db.query(OneOffEvent).filter(OneOffEvent.id == event_id, OneOffEvent.scenario_id == scenario_id).first()
     if not obj:
@@ -314,7 +312,7 @@ class DebtAccountCreate(BaseModel):
 def list_debts(
     scenario_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     return db.query(DebtAccount).filter(DebtAccount.scenario_id == scenario_id).all()
 
@@ -324,7 +322,7 @@ def create_debt(
     scenario_id: int,
     data: DebtAccountCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = DebtAccount(scenario_id=scenario_id, **data.model_dump())
     db.add(obj)
@@ -338,7 +336,7 @@ def delete_debt(
     scenario_id: int,
     debt_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = db.query(DebtAccount).filter(DebtAccount.id == debt_id, DebtAccount.scenario_id == scenario_id).first()
     if not obj:
@@ -361,7 +359,7 @@ class CreditCardDebtCreate(BaseModel):
 def list_credit_cards(
     scenario_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     return db.query(CreditCardDebt).filter(CreditCardDebt.scenario_id == scenario_id).all()
 
@@ -371,7 +369,7 @@ def create_credit_card(
     scenario_id: int,
     data: CreditCardDebtCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = CreditCardDebt(scenario_id=scenario_id, **data.model_dump())
     db.add(obj)
@@ -385,7 +383,7 @@ def delete_credit_card(
     scenario_id: int,
     cc_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = db.query(CreditCardDebt).filter(CreditCardDebt.id == cc_id, CreditCardDebt.scenario_id == scenario_id).first()
     if not obj:
@@ -409,7 +407,7 @@ class SavingsContribCreate(BaseModel):
 def list_savings(
     scenario_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     return db.query(SavingsContribution).filter(SavingsContribution.scenario_id == scenario_id).all()
 
@@ -419,7 +417,7 @@ def create_savings(
     scenario_id: int,
     data: SavingsContribCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = SavingsContribution(scenario_id=scenario_id, **data.model_dump())
     db.add(obj)
@@ -433,7 +431,7 @@ def delete_savings(
     scenario_id: int,
     savings_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = db.query(SavingsContribution).filter(SavingsContribution.id == savings_id, SavingsContribution.scenario_id == scenario_id).first()
     if not obj:
@@ -458,7 +456,7 @@ class EmployerRRSPCreate(BaseModel):
 def list_employer_rrsp(
     scenario_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     return db.query(EmployerRRSPMatch).filter(EmployerRRSPMatch.scenario_id == scenario_id).all()
 
@@ -468,7 +466,7 @@ def create_employer_rrsp(
     scenario_id: int,
     data: EmployerRRSPCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = EmployerRRSPMatch(scenario_id=scenario_id, **data.model_dump())
     db.add(obj)
@@ -482,7 +480,7 @@ def delete_employer_rrsp(
     scenario_id: int,
     match_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+
 ):
     obj = db.query(EmployerRRSPMatch).filter(
         EmployerRRSPMatch.id == match_id,

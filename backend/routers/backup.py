@@ -1,18 +1,14 @@
-import json
 import os
 from datetime import datetime
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
-from backend.database import get_db, DB_PATH
-from backend.models.user import User
-from backend.dependencies import get_current_user
+from backend.database import DB_PATH
 
 router = APIRouter()
 
 
 @router.get("/export")
-def export_database(user: User = Depends(get_current_user)):
+def export_database():
     """Download the entire SQLite database file."""
     if not os.path.exists(DB_PATH):
         return {"error": "Database file not found"}
@@ -25,7 +21,7 @@ def export_database(user: User = Depends(get_current_user)):
 
 
 @router.post("/import")
-async def import_database(file: UploadFile = File(...), user: User = Depends(get_current_user)):
+async def import_database(file: UploadFile = File(...)):
     """Replace the database with an uploaded backup file."""
     backup_path = DB_PATH + ".bak"
     # Save current as backup
