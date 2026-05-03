@@ -17,6 +17,7 @@ import backend.models.settings
 import backend.models.recurring
 import backend.models.profile
 import backend.models.holding
+import backend.models.user
 
 from backend.routers import accounts, transactions, categories, import_export, budgets, forecast, scenarios, goals, backup, recurring, profiles, holdings
 from backend.database import SessionLocal
