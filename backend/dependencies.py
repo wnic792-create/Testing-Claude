@@ -1,32 +1,30 @@
-from typing import Optional
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.user import User
 from backend.models.profile import Profile
 from backend.services.auth import verify_token
 
-security = HTTPBearer(auto_error=False)
-
 
 def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    request: Request,
     db: Session = Depends(get_db),
 ) -> User:
-    if credentials is None:
-        print("[AUTH] No credentials provided — returning 401")
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        print(f"[AUTH] Missing or bad Authorization header: '{auth[:50]}'")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
-    payload = verify_token(credentials.credentials)
+    token = auth[7:]  # strip "Bearer "
+    payload = verify_token(token)
     if not payload:
-        print(f"[AUTH] Token verification FAILED — token starts with: {credentials.credentials[:30]}...")
+        print(f"[AUTH] Token verification FAILED for token: {token[:30]}...")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
     user_id = int(payload["sub"])
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.is_active:
         print(f"[AUTH] User {user_id} not found or inactive")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found")
-    print(f"[AUTH] Authenticated user: {user.username} (id={user.id})")
+    print(f"[AUTH] OK: {user.username} (id={user.id})")
     return user
 
 

@@ -12,7 +12,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
   const [backendOk, setBackendOk] = useState<boolean | null>(null)
   const navigate = useNavigate()
@@ -31,7 +30,6 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setStatus('')
     setLoading(true)
 
     try {
@@ -40,14 +38,11 @@ export default function LoginPage() {
         ? { username, email, password }
         : { username, password }
 
-      setStatus('Sending request...')
       const res = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-
-      setStatus(`Server responded: ${res.status}`)
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ detail: 'Request failed' }))
@@ -55,27 +50,15 @@ export default function LoginPage() {
       }
 
       const data = await res.json()
-      setStatus('Token received, storing...')
 
       if (!data.access_token) {
         throw new Error('No token in response')
       }
 
       login(data.access_token, data.user_id, data.username)
-      setStatus('Stored! Navigating to app...')
-
-      // Verify the token works before navigating
-      const testRes = await fetch(`${API_BASE}/auth/me`, {
-        headers: { Authorization: `Bearer ${data.access_token}` },
-      })
-      if (!testRes.ok) {
-        throw new Error(`Token verification failed: ${testRes.status} — the token was created but the server can't verify it. This usually means the server restarted with a different secret key.`)
-      }
-
       navigate('/')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-      setStatus('')
     } finally {
       setLoading(false)
     }
@@ -111,12 +94,6 @@ export default function LoginPage() {
           {error && (
             <div className="mb-5 px-4 py-3 rounded-xl bg-negative/10 border border-negative/20 text-negative text-sm">
               {error}
-            </div>
-          )}
-
-          {status && !error && (
-            <div className="mb-5 px-4 py-3 rounded-xl bg-accent/10 border border-accent/20 text-accent text-sm">
-              {status}
             </div>
           )}
 
@@ -189,7 +166,7 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-6 border-t border-surface-800 text-center">
             <button
-              onClick={() => { setIsRegister(!isRegister); setError(''); setStatus('') }}
+              onClick={() => { setIsRegister(!isRegister); setError('') }}
               className="text-sm text-surface-400 hover:text-white transition-colors"
             >
               {isRegister ? 'Already have an account? Sign in' : "Don't have an account? Register"}

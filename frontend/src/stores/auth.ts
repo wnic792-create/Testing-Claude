@@ -5,6 +5,7 @@ interface AuthState {
   userId: number | null
   username: string | null
   isAuthenticated: boolean
+  loginAt: number
   login: (token: string, userId: number, username: string) => void
   logout: () => void
   loadFromStorage: () => void
@@ -15,9 +16,9 @@ function getInitialState() {
   const userId = localStorage.getItem('auth_user_id')
   const username = localStorage.getItem('auth_username')
   if (token && userId && username) {
-    return { token, userId: Number(userId), username, isAuthenticated: true }
+    return { token, userId: Number(userId), username, isAuthenticated: true, loginAt: 0 }
   }
-  return { token: null, userId: null, username: null, isAuthenticated: false }
+  return { token: null, userId: null, username: null, isAuthenticated: false, loginAt: 0 }
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -27,14 +28,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem('auth_token', token)
     localStorage.setItem('auth_user_id', String(userId))
     localStorage.setItem('auth_username', username)
-    set({ token, userId, username, isAuthenticated: true })
+    set({ token, userId, username, isAuthenticated: true, loginAt: Date.now() })
   },
 
   logout: () => {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user_id')
     localStorage.removeItem('auth_username')
-    set({ token: null, userId: null, username: null, isAuthenticated: false })
+    set({ token: null, userId: null, username: null, isAuthenticated: false, loginAt: 0 })
   },
 
   loadFromStorage: () => {

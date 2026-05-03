@@ -18,7 +18,7 @@ interface ProfileState {
 
 export const useProfileStore = create<ProfileState>((set) => ({
   profiles: [],
-  activeProfileId: 1,
+  activeProfileId: 'all',
   setActiveProfileId: (id) => set({ activeProfileId: id }),
   fetchProfiles: async () => {
     try {
